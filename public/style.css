@@ -20,6 +20,51 @@
   --color-danger: #d24949;
 }
 
+/* ---------- Ducky (default, light) ---------- */
+[data-theme="ducky"] {
+  --color-on-accent: #ffffff;
+  --color-bg: #f3f1ea;
+  --color-surface: #e7e3d7;
+  --color-text: #151515;
+  --color-text-dim: #5e5a52;
+  --color-border: #d8d2c2;
+  --color-border-strong: #9c9483;
+  --color-accent: #e8641c;
+  --color-correct: #2e8b57;
+  --color-present: #d99a00;
+  --color-absent: #8a8780;
+  --key-text-on-color: #ffffff;
+  --color-key-bg: #e2ddcf;
+  --color-key-text: #151515;
+  --color-modal-overlay: rgba(21, 21, 21, 0.45);
+  --color-danger: #c0392b;
+}
+
+/* ---------- Ducky Dark ---------- */
+[data-theme="ducky-night"] {
+  --color-on-accent: #151515;
+  --color-bg: #151515;
+  --color-surface: #1f1f1f;
+  --color-text: #f0eee8;
+  --color-text-dim: #a8a49a;
+  --color-border: #333333;
+  --color-border-strong: #4a4a4a;
+  --color-accent: #ff7a2f;
+  --color-correct: #3aa76d;
+  --color-present: #d9a400;
+  --color-absent: #3a3a3a;
+  --key-text-on-color: #ffffff;
+  --color-key-bg: #5a5752;
+  --color-key-text: #ffffff;
+  --color-modal-overlay: rgba(0, 0, 0, 0.6);
+  --color-danger: #e5534b;
+}
+
+/* ---------- Ducky branding ---------- */
+.brand-title { display: flex; align-items: center; justify-content: center; gap: 0.45rem; }
+.brand-duck { height: 1.9em; width: 1.9em; border-radius: 50%; }
+.brand-foot a { color: var(--color-accent); font-weight: 700; text-decoration: none; }
+
 /* ---------- OLED Black ---------- */
 [data-theme="oled"] {
   --color-bg: #000000;

@@ -1,13 +1,13 @@
 {
-  "name": "Wordly — Daily Puzzle Suite",
-  "short_name": "Wordly",
-  "description": "Nine daily word, crossword, pattern, and logic puzzles that reset every midnight.",
+  "name": "Ducky Dailies — The Ducky Nerdball",
+  "short_name": "Ducky Dailies",
+  "description": "Daily word and logic puzzles from The Ducky Nerdball.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#000000",
-  "theme_color": "#121213",
+  "background_color": "#f3f1ea",
+  "theme_color": "#1c1c1c",
   "icons": [
     {
       "src": "icon.png",

@@ -4,6 +4,8 @@ window.Shared = (() => {
   "use strict";
 
   const THEMES = [
+    { id: "ducky", name: "Ducky (Light)", swatch: "#ff7a2f" },
+    { id: "ducky-night", name: "Ducky (Dark)", swatch: "#151515" },
     { id: "dark", name: "Dark", swatch: "#538d4e" },
     { id: "oled", name: "OLED Black", swatch: "#000000" },
     { id: "light", name: "Light", swatch: "#6aaa64" },
@@ -541,7 +543,7 @@ window.Shared = (() => {
       // ignore
     }
     if (savedTheme && THEMES.some((t) => t.id === savedTheme)) applyTheme(savedTheme);
-    else renderThemeList(null);
+    else applyTheme("ducky");
 
     const themeBtn = document.getElementById("theme-btn");
     if (themeBtn) themeBtn.addEventListener("click", () => openModal("theme-modal"));
@@ -595,7 +597,7 @@ window.Shared = (() => {
     });
 
     document.getElementById("import-code-btn")?.addEventListener("click", () => {
-      const code = window.prompt("Paste your Wordly backup code:");
+      const code = window.prompt("Paste your Ducky Dailies backup code:");
       if (!code || !code.trim()) return;
       try {
         const parsed = JSON.parse(decodeURIComponent(escape(atob(code.trim()))));
