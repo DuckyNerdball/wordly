@@ -2772,3 +2772,19 @@ textarea {
   }
 }
 
+
+
+/* ---------- Comfort layer: home menu ---------- */
+.menu-greeting { font-size: 1.3rem; font-weight: 700; }
+.game-card { padding: 1.1rem 1.2rem; min-height: 6.2rem; border-width: 2px; }
+.game-name { font-size: 1.35rem; }
+.game-desc { font-size: 0.98rem; color: var(--color-text); opacity: 0.85; }
+.game-status { font-size: 0.9rem; }
+.menu-foot { font-size: 0.95rem; }
+@media (min-width: 960px) {
+  .menu-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
+}
+
+.controls-row { flex-wrap: wrap !important; justify-content: center; row-gap: 0.45rem; }
+.mode-btn, .len-btn { padding: 0.45rem 0.75rem !important; font-size: 0.9rem !important; }
+.hard-mode-btn { font-size: 0.85rem; padding: 0.4rem 0.7rem; }

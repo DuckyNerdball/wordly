@@ -26,7 +26,7 @@
   --color-bg: #f3f1ea;
   --color-surface: #e7e3d7;
   --color-text: #151515;
-  --color-text-dim: #5e5a52;
+  --color-text-dim: #4a463f;
   --color-border: #d8d2c2;
   --color-border-strong: #9c9483;
   --color-accent: #e8641c;
@@ -2187,3 +2187,28 @@ html[data-theme="bubblegum"] .key.absent {
     font-size: clamp(0.8rem, 5vw, 1.4rem);
   }
 }
+
+
+/* ---------- Comfort layer (bigger text, labeled buttons, easy targets) ---------- */
+html { font-size: calc(100% * var(--text-scale, 1.15)); }
+.app-title { font-size: 1.3rem; }
+.labeled-btn {
+  width: auto !important;
+  height: auto !important;
+  min-width: 3.1rem;
+  min-height: 2.9rem;
+  flex-direction: column;
+  gap: 0.1rem;
+  padding: 0.25rem 0.45rem;
+  border: 1.5px solid var(--color-border-strong) !important;
+  border-radius: 10px !important;
+  line-height: 1.05;
+  text-decoration: none;
+}
+.labeled-btn .btn-icon { font-size: 1.15rem; display: flex; align-items: baseline; }
+.labeled-btn .btn-icon small { font-size: 0.7em; }
+.labeled-btn .btn-label { font-size: 0.66rem; font-weight: 700; white-space: nowrap; }
+.labeled-btn:hover { background: var(--color-surface); }
+.header-side { gap: 0.35rem; }
+:focus-visible { outline: 3px solid var(--color-accent) !important; outline-offset: 2px; }
+.key { height: 56px; max-width: 48px; font-size: 1.05rem; }

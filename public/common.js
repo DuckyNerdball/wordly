@@ -29,6 +29,7 @@ window.Shared = (() => {
   ];
 
   const THEME_KEY = "wordly:theme";
+  const TEXT_SCALE_KEY = "wordly:textScale";
   const PLAYER_KEY = "wordly:playerName";
   const PIN_KEY = "wordly:playerPin";
   const OFFLINE_SCORES_KEY = "wordly:offlineScores";
@@ -218,7 +219,8 @@ window.Shared = (() => {
       archiveBtn.type = "button";
       archiveBtn.setAttribute("aria-label", "Past daily puzzles");
       archiveBtn.title = "Past daily puzzles";
-      archiveBtn.innerHTML = "&#128197;";
+      archiveBtn.className = "icon-btn archive-btn labeled-btn";
+      archiveBtn.innerHTML = '<span class="btn-icon" aria-hidden="true">&#128197;</span><span class="btn-label">Past days</span>';
       const lbBtn = document.getElementById("leaderboard-btn");
       if (lbBtn) controlsRow.insertBefore(archiveBtn, lbBtn);
       else controlsRow.appendChild(archiveBtn);
@@ -556,6 +558,48 @@ window.Shared = (() => {
         if (pinEl) pinEl.value = getPlayerPin();
         openModal("name-modal");
       });
+    }
+
+    // ---------- comfort: labeled header buttons + text size ----------
+    const LABELS = {
+      "All games": "Games",
+      "How to play": "Help",
+      "Change theme": "Colors",
+      "Leaderboard": "Scores",
+      "New game": "New",
+      "New puzzle": "New",
+      "Player profile": "My name",
+    };
+    document.querySelectorAll(".app-header .icon-btn[title]").forEach((btn) => {
+      const label = LABELS[btn.getAttribute("title")];
+      if (!label || btn.classList.contains("labeled-btn")) return;
+      btn.classList.add("labeled-btn");
+      const icon = btn.id === "theme-btn" ? "&#127912;" : btn.innerHTML;
+      btn.innerHTML = `<span class="btn-icon" aria-hidden="true">${icon}</span><span class="btn-label">${label}</span>`;
+    });
+    if (themeBtn && !document.getElementById("size-btn")) {
+      const SIZES = [
+        { v: "1.15", n: "Normal" },
+        { v: "1.3", n: "Large" },
+        { v: "1.5", n: "Extra large" },
+      ];
+      const sizeBtn = document.createElement("button");
+      sizeBtn.id = "size-btn";
+      sizeBtn.type = "button";
+      sizeBtn.className = "icon-btn labeled-btn";
+      sizeBtn.title = "Text size";
+      sizeBtn.setAttribute("aria-label", "Change text size");
+      sizeBtn.innerHTML = '<span class="btn-icon" aria-hidden="true"><b>A</b><small>A</small></span><span class="btn-label">Text size</span>';
+      sizeBtn.addEventListener("click", () => {
+        let cur = "1.15";
+        try { cur = localStorage.getItem(TEXT_SCALE_KEY) || "1.15"; } catch { /* ignore */ }
+        const i = SIZES.findIndex((s) => s.v === cur);
+        const next = SIZES[(i + 1) % SIZES.length];
+        document.documentElement.style.setProperty("--text-scale", next.v);
+        try { localStorage.setItem(TEXT_SCALE_KEY, next.v); } catch { /* ignore */ }
+        showToast(`Text size: ${next.n}`);
+      });
+      themeBtn.insertAdjacentElement("afterend", sizeBtn);
     }
 
     const saveName = async () => {

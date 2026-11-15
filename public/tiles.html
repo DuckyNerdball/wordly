@@ -7,12 +7,12 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>Tiley — Ducky Dailies</title>
-<script>try{var t=localStorage.getItem("wordly:theme")||"ducky";document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+<script>try{var t=localStorage.getItem("wordly:theme")||"ducky";document.documentElement.setAttribute("data-theme",t);var s=localStorage.getItem("wordly:textScale");if(s)document.documentElement.style.setProperty("--text-scale",s)}catch(e){}</script>
 <link rel="icon" type="image/png" href="icon.png">
 <link rel="apple-touch-icon" href="icon.png">
 <link rel="manifest" href="manifest.json">
-<link rel="stylesheet" href="style.css?v=8">
-<link rel="stylesheet" href="games.css?v=8">
+<link rel="stylesheet" href="style.css?v=9">
+<link rel="stylesheet" href="games.css?v=9">
 </head>
 <body class="game-tiles">
 <div id="toast-container" class="toast-container" aria-live="polite"></div>
@@ -121,7 +121,7 @@
   </div>
 </div>
 
-<script src="common.js?v=8"></script>
-<script src="tiles.js?v=8"></script>
+<script src="common.js?v=9"></script>
+<script src="tiles.js?v=9"></script>
 </body>
 </html>
