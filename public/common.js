@@ -47,16 +47,6 @@ window.Shared = (() => {
     scheduleCloudSync();
   });
 
-  // Prevent accidental double-tap or pinch zoom on phones during fast play.
-  document.addEventListener(
-    "dblclick",
-    (e) => {
-      if (!e.target.closest("input, textarea")) e.preventDefault();
-    },
-    { passive: false }
-  );
-  document.addEventListener("gesturestart", (e) => e.preventDefault(), { passive: false });
-
   if ("serviceWorker" in navigator) {
     window.addEventListener("load", () => {
       navigator.serviceWorker.register("/sw.js").catch(() => {});
