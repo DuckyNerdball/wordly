@@ -915,32 +915,8 @@ const ROUTES = {
     handler: async (url, req) => submitConnectionsScore(await readJSONBody(req)),
   },
 
-  "GET /api/mini/leaderboard": {
-    limit: "read",
-    handler: (url) => computeCrosswordLeaderboard(miniStore, validDate(url.searchParams.get("date"))),
-  },
-  "POST /api/mini/score": {
-    limit: "write",
-    handler: async (url, req) => submitCrosswordScore(miniStore, await readJSONBody(req)),
-  },
 
-  "GET /api/midi/leaderboard": {
-    limit: "read",
-    handler: (url) => computeCrosswordLeaderboard(midiStore, validDate(url.searchParams.get("date"))),
-  },
-  "POST /api/midi/score": {
-    limit: "write",
-    handler: async (url, req) => submitCrosswordScore(midiStore, await readJSONBody(req)),
-  },
 
-  "GET /api/crossword/leaderboard": {
-    limit: "read",
-    handler: (url) => computeCrosswordLeaderboard(crosswordStore, validDate(url.searchParams.get("date"))),
-  },
-  "POST /api/crossword/score": {
-    limit: "write",
-    handler: async (url, req) => submitCrosswordScore(crosswordStore, await readJSONBody(req)),
-  },
 
   "GET /api/tiles/leaderboard": {
     limit: "read",
