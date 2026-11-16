@@ -64,8 +64,13 @@
     const cellNums = new Array(total).fill(0);
     const acrossWords = [];
     const downWords = [];
-    const acrossMap = new Map(raw.across.map(([n, c]) => [n, c]));
-    const downMap = new Map(raw.down.map(([n, c]) => [n, c]));
+    // Some archived clues are double-encoded UTF-8 ("sÃ©ance"); repair them.
+    const fixText = (s) => {
+      if (typeof s !== "string" || !/[\u00c2\u00c3]/.test(s)) return s;
+      try { return decodeURIComponent(escape(s)); } catch { return s; }
+    };
+    const acrossMap = new Map(raw.across.map(([n, c]) => [n, fixText(c)]));
+    const downMap = new Map(raw.down.map(([n, c]) => [n, fixText(c)]));
     const cellAcross = new Array(total).fill(-1);
     const cellDown = new Array(total).fill(-1);
 
@@ -1004,6 +1009,115 @@
     });
     const lb = document.getElementById("leaderboard-btn");
     if (lb && lb.parentNode === row) row.insertBefore(btn, lb);
+    else row.appendChild(btn);
+  })();
+
+
+  // ---------- printing: clean paper copy of the current puzzle (+ optional answer key) ----------
+  function gridSvg(puzzle, withAnswers, maxIn) {
+    const { rows, cols, grid, cellNums } = puzzle;
+    const cs = 40;
+    const w = cols * cs;
+    const h = rows * cs;
+    let out = `<svg class="ps-grid" viewBox="-2 -2 ${w + 4} ${h + 4}" style="width:min(100%, ${maxIn}in)" xmlns="http://www.w3.org/2000/svg">`;
+    for (let r = 0; r < rows; r++) {
+      for (let col = 0; col < cols; col++) {
+        const i = r * cols + col;
+        const x = col * cs;
+        const y = r * cs;
+        const block = grid[i] === ".";
+        out += `<rect x="${x}" y="${y}" width="${cs}" height="${cs}" fill="${block ? "#000" : "#fff"}" stroke="#000" stroke-width="1.5"/>`;
+        if (!block && cellNums[i]) out += `<text x="${x + 2.5}" y="${y + 11}" font-size="10.5" font-family="Arial, sans-serif" fill="#000">${cellNums[i]}</text>`;
+        if (!block && withAnswers) out += `<text x="${x + cs / 2}" y="${y + cs * 0.78}" font-size="22" font-weight="700" text-anchor="middle" font-family="Arial, sans-serif" fill="#000">${grid[i]}</text>`;
+      }
+    }
+    out += `<rect x="0" y="0" width="${w}" height="${h}" fill="none" stroke="#000" stroke-width="3"/></svg>`;
+    return out;
+  }
+
+  function printPuzzle(withAnswers) {
+    if (!state || !state.puzzle) return;
+    const pz = state.puzzle;
+    const e = S.escapeHtml;
+    const pub = typeof puzzlePublished === "function" ? puzzlePublished(pz) : null;
+    const pubText = pub ? pub.toLocaleDateString(undefined, { weekday: "long", year: "numeric", month: "long", day: "numeric" }) : "";
+    const big = pz.cols > 9;
+    const clueList = (words) =>
+      words.map((wd) => `<li><b>${wd.num}</b> ${e(wd.clue)} <span class="ps-len">(${wd.cells.length})</span></li>`).join("");
+    let sheet = document.getElementById("print-sheet");
+    if (!sheet) {
+      sheet = document.createElement("div");
+      sheet.id = "print-sheet";
+      document.body.appendChild(sheet);
+    }
+    sheet.innerHTML = `
+      <div class="ps-page">
+        <div class="ps-head">
+          <div class="ps-brand">Ducky Dailies &middot; ${e(CFG.name || "Crossword")}</div>
+          <div class="ps-title">${e(pz.title || "")}${pz.author ? ` &middot; by ${e(pz.author)}` : ""}</div>
+          ${pubText ? `<div class="ps-pub">First published ${e(pubText)}</div>` : ""}
+          <div class="ps-name">Name: ______________________ &nbsp; Date: ____________</div>
+        </div>
+        <div class="ps-gridwrap">${gridSvg(pz, false, big ? 6.4 : 4.2)}</div>
+        <div class="ps-clues">
+          <div class="ps-col"><h3>Across</h3><ol>${clueList(pz.acrossWords)}</ol></div>
+          <div class="ps-col"><h3>Down</h3><ol>${clueList(pz.downWords)}</ol></div>
+        </div>
+      </div>
+      ${
+        withAnswers
+          ? `<div class="ps-page ps-answers">
+              <div class="ps-head"><div class="ps-brand">Answer key</div><div class="ps-title">${e(pz.title || "")}</div></div>
+              <div class="ps-gridwrap">${gridSvg(pz, true, big ? 6.4 : 4.2)}</div>
+            </div>`
+          : ""
+      }`;
+    S.closeModal("print-modal");
+    setTimeout(() => window.print(), 50);
+  }
+
+  (function initPrint() {
+    const row = document.querySelector(".controls-row");
+    if (!row || document.getElementById("print-btn")) return;
+    document.body.insertAdjacentHTML(
+      "beforeend",
+      `<div id="print-modal" class="modal-overlay hidden">
+        <div class="modal">
+          <button class="modal-close" data-close="print-modal" aria-label="Close">&times;</button>
+          <h2>Print this puzzle</h2>
+          <p class="archive-sub">Prints a clean copy of the puzzle on screen: big grid, all the clues, room for your name.</p>
+          <div class="print-choices">
+            <button id="print-plain" class="donate-btn print-choice" type="button">&#128424;&#65039; Print puzzle</button>
+            <button id="print-key" class="pill-btn print-choice" type="button">Print puzzle + answer key</button>
+          </div>
+          <p class="donate-note">The answer key prints on its own page, so you can keep it separate.</p>
+        </div>
+      </div>`
+    );
+    const modal = document.getElementById("print-modal");
+    modal.querySelector(".modal-close").addEventListener("click", () => S.closeModal("print-modal"));
+    modal.addEventListener("click", (ev) => {
+      if (ev.target === modal) S.closeModal("print-modal");
+    });
+    document.getElementById("print-plain").addEventListener("click", () => printPuzzle(false));
+    document.getElementById("print-key").addEventListener("click", () => printPuzzle(true));
+
+    const btn = document.createElement("button");
+    btn.id = "print-btn";
+    btn.type = "button";
+    btn.className = "icon-btn labeled-btn";
+    btn.title = "Print";
+    btn.setAttribute("aria-label", "Print this puzzle");
+    btn.innerHTML = '<span class="btn-icon" aria-hidden="true">&#128424;&#65039;</span><span class="btn-label">Print</span>';
+    btn.addEventListener("click", () => {
+      if (!state || !state.puzzle) {
+        S.showToast("Enter your name first to load a puzzle");
+        return;
+      }
+      S.openModal("print-modal");
+    });
+    const lib = document.getElementById("library-btn");
+    if (lib && lib.parentNode === row) row.insertBefore(btn, lib);
     else row.appendChild(btn);
   })();
 
