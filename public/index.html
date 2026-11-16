@@ -11,8 +11,8 @@
 <link rel="icon" type="image/png" href="icon.png">
 <link rel="apple-touch-icon" href="icon.png">
 <link rel="manifest" href="manifest.json">
-<link rel="stylesheet" href="style.css?v=11">
-<link rel="stylesheet" href="games.css?v=11">
+<link rel="stylesheet" href="style.css?v=12">
+<link rel="stylesheet" href="games.css?v=12">
 </head>
 <body class="game-menu">
 <div id="toast-container" class="toast-container" aria-live="polite"></div>
@@ -131,6 +131,33 @@
       </span>
     </a>
 
+    <a class="game-card" href="/mini">
+      <span class="game-icon icon-crossword" aria-hidden="true">
+        <svg viewBox="0 0 100 100">
+          <rect x="10" y="10" width="17.5" height="17.5" rx="3" fill="var(--color-key-bg, #818384)"></rect>
+          <rect x="31" y="10" width="17.5" height="17.5" rx="3" fill="var(--color-key-bg, #818384)"></rect>
+          <rect x="52" y="10" width="17.5" height="17.5" rx="3" fill="var(--color-correct, #538d4e)"></rect>
+          <rect x="73" y="10" width="17.5" height="17.5" rx="3" fill="var(--color-absent, #3a3a3c)"></rect>
+          <rect x="10" y="31" width="17.5" height="17.5" rx="3" fill="var(--bee-center, var(--color-present, #b59f3b))"></rect>
+          <rect x="31" y="31" width="17.5" height="17.5" rx="3" fill="var(--bee-center, var(--color-present, #b59f3b))"></rect>
+          <rect x="52" y="31" width="17.5" height="17.5" rx="3" fill="var(--bee-center, var(--color-present, #b59f3b))"></rect>
+          <rect x="73" y="31" width="17.5" height="17.5" rx="3" fill="var(--bee-center, var(--color-present, #b59f3b))"></rect>
+          <rect x="10" y="52" width="17.5" height="17.5" rx="3" fill="var(--color-key-bg, #818384)"></rect>
+          <rect x="31" y="52" width="17.5" height="17.5" rx="3" fill="var(--color-absent, #3a3a3c)"></rect>
+          <rect x="52" y="52" width="17.5" height="17.5" rx="3" fill="var(--color-correct, #538d4e)"></rect>
+          <rect x="73" y="52" width="17.5" height="17.5" rx="3" fill="var(--color-key-bg, #818384)"></rect>
+          <rect x="10" y="73" width="17.5" height="17.5" rx="3" fill="var(--color-absent, #3a3a3c)"></rect>
+          <rect x="31" y="73" width="17.5" height="17.5" rx="3" fill="var(--color-key-bg, #818384)"></rect>
+          <rect x="52" y="73" width="17.5" height="17.5" rx="3" fill="var(--color-correct, #538d4e)"></rect>
+          <rect x="73" y="73" width="17.5" height="17.5" rx="3" fill="var(--color-key-bg, #818384)"></rect>
+        </svg>
+      </span>
+      <span class="game-info">
+        <span class="game-name">Crossy <span class="lock-tag">&#128274; Test area</span></span>
+        <span class="game-desc">Mini, Midi &amp; full-size daily crosswords. Asks for a password.</span>
+        <span id="status-mini" class="game-status"></span>
+      </span>
+    </a>
     <a class="game-card" href="/tiles">
       <span class="game-icon icon-tiles" aria-hidden="true">
         <svg viewBox="0 0 100 100">
@@ -192,7 +219,7 @@
   <p class="menu-foot brand-foot">Brought to you by <a href="https://theduckynerdball.com" target="_blank" rel="noopener">The Ducky Nerdball</a> &#129414;</p>
 </main>
 
-<script src="common.js?v=11"></script>
+<script src="common.js?v=12"></script>
 <script>
 (() => {
   const S = Shared;
