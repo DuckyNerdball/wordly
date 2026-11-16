@@ -1,7 +1,7 @@
 // Wordly Service Worker: pre-caches every game HTML, JS, CSS, icon, and
 // puzzle dictionary on install so all 11 games work 100% offline on phones,
 // while using network-first when online so updates appear immediately.
-const CACHE_NAME = "wordly-ducky-v8";
+const CACHE_NAME = "wordly-ducky-v9";
 const PRECACHE_ASSETS = [
   "/",
   "/wordly",
@@ -12,6 +12,7 @@ const PRECACHE_ASSETS = [
   "/wordsearch",
   "/tiles",
   "/sudoku",
+  "/jumbly",
   "/style.css",
   "/games.css",
   "/common.js",
@@ -24,6 +25,8 @@ const PRECACHE_ASSETS = [
   "/crossword.js",
   "/tiles.js",
   "/sudoku.js",
+  "/jumbly.js",
+  "/words-jumbly.js",
   "/words.js",
   "/words-bee.js",
   "/words-boxed.js",

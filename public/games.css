@@ -2864,3 +2864,47 @@ textarea {
   .ps-col li { margin: 0 0 0.04in; break-inside: avoid; }
   .ps-len { font-size: 9.5pt; color: #444; }
 }
+
+/* ---------- Jumbly ---------- */
+.jumbly-main { display: flex; flex-direction: column; align-items: center; gap: 0.9rem; padding-bottom: 1.5rem; }
+.jumbly-progress { display: flex; gap: 0.6rem; align-items: baseline; font-size: 1.05rem; font-weight: 700; flex-wrap: wrap; justify-content: center; }
+.jb-bonus-count { color: var(--color-accent); font-size: 0.95rem; }
+.jb-board { width: 100%; max-width: 44rem; display: flex; flex-direction: column; gap: 0.7rem; max-height: 42vh; overflow-y: auto; padding: 0.2rem; }
+.jb-group-label { font-size: 0.8rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; color: var(--color-text-dim); margin-bottom: 0.3rem; }
+.jb-group-words { display: flex; flex-wrap: wrap; gap: 0.45rem 0.8rem; }
+.jb-word { display: flex; gap: 3px; }
+.jb-box {
+  width: 1.85rem; height: 1.85rem; display: flex; align-items: center; justify-content: center;
+  border: 2px solid var(--color-border-strong); border-radius: 5px; background: var(--color-surface);
+  font-weight: 800; font-size: 1.05rem; color: var(--color-text);
+}
+.jb-word.big .jb-box { border-color: var(--color-accent); }
+.jb-word.found .jb-box { background: var(--color-correct); border-color: var(--color-correct); color: var(--key-text-on-color); }
+.jb-word.missed .jb-box { background: var(--color-key-bg); color: var(--color-text-dim); border-style: dashed; }
+.jb-box.hinted { color: var(--color-accent); }
+.jb-guess {
+  min-height: 3.4rem; display: flex; align-items: center; justify-content: center; gap: 0.3rem;
+  width: 100%; max-width: 26rem; border-bottom: 3px solid var(--color-border-strong); cursor: pointer;
+}
+.jb-guess-letter { font-size: 2.2rem; font-weight: 800; letter-spacing: 0.04em; }
+.jb-guess-placeholder { color: var(--color-text-dim); font-size: 1rem; }
+.jb-guess.shake { animation: jb-shake 0.35s; }
+.jb-guess.pop { animation: jb-pop 0.3s; }
+@keyframes jb-shake { 0%,100% { transform: translateX(0); } 25% { transform: translateX(-8px); } 75% { transform: translateX(8px); } }
+@keyframes jb-pop { 50% { transform: scale(1.08); } }
+.jb-letters { display: flex; gap: 0.5rem; justify-content: center; flex-wrap: nowrap; width: 100%; }
+.jb-letter {
+  width: min(3.6rem, calc((100vw - 3.5rem) / 6)); height: min(3.6rem, calc((100vw - 3.5rem) / 6)); flex: 0 0 auto; border-radius: 50%; border: none; cursor: pointer;
+  background: var(--color-accent); color: var(--color-on-accent, #fff);
+  font-size: 1.75rem; font-weight: 800; box-shadow: 0 3px 0 rgba(0,0,0,0.25);
+}
+.jb-letter:active { transform: translateY(2px); box-shadow: 0 1px 0 rgba(0,0,0,0.25); }
+.jb-letter.used { opacity: 0.25; cursor: default; }
+.jb-controls { display: flex; gap: 0.5rem; flex-wrap: wrap; justify-content: center; }
+.jb-controls .pill-btn, .jb-enter { font-size: 1rem; padding: 0.6rem 1.1rem; min-height: 2.8rem; }
+.jb-enter { width: auto; margin-top: 0; }
+.jb-controls button:disabled { opacity: 0.4; cursor: default; }
+@media (max-width: 420px) {
+  .jb-box { width: 1.55rem; height: 1.55rem; font-size: 0.9rem; }
+  .jb-letter { font-size: 1.45rem; }
+}

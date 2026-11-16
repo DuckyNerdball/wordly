@@ -11,8 +11,8 @@
 <link rel="icon" type="image/png" href="icon.png">
 <link rel="apple-touch-icon" href="icon.png">
 <link rel="manifest" href="manifest.json">
-<link rel="stylesheet" href="style.css?v=14">
-<link rel="stylesheet" href="games.css?v=14">
+<link rel="stylesheet" href="style.css?v=15">
+<link rel="stylesheet" href="games.css?v=15">
 </head>
 <body class="game-menu">
 <div id="toast-container" class="toast-container" aria-live="polite"></div>
@@ -76,6 +76,25 @@
       </span>
     </a>
 
+    <a class="game-card" href="/jumbly">
+      <span class="game-icon icon-jumbly" aria-hidden="true">
+        <svg viewBox="0 0 100 100">
+          <circle cx="30" cy="30" r="17" fill="var(--color-accent, #e8641c)"></circle>
+          <circle cx="70" cy="30" r="17" fill="var(--color-accent, #e8641c)"></circle>
+          <circle cx="30" cy="70" r="17" fill="var(--color-accent, #e8641c)"></circle>
+          <circle cx="70" cy="70" r="17" fill="var(--color-correct, #2e8b57)"></circle>
+          <text x="30" y="37" text-anchor="middle" font-size="20" font-weight="800" fill="#fff" font-family="Arial, sans-serif">J</text>
+          <text x="70" y="37" text-anchor="middle" font-size="20" font-weight="800" fill="#fff" font-family="Arial, sans-serif">U</text>
+          <text x="30" y="77" text-anchor="middle" font-size="20" font-weight="800" fill="#fff" font-family="Arial, sans-serif">M</text>
+          <text x="70" y="77" text-anchor="middle" font-size="20" font-weight="800" fill="#fff" font-family="Arial, sans-serif">B</text>
+        </svg>
+      </span>
+      <span class="game-info">
+        <span class="game-name">Jumbly</span>
+        <span class="game-desc">Find every word hidden in six jumbled letters. No timer.</span>
+        <span id="status-jumbly" class="game-status"></span>
+      </span>
+    </a>
     <a class="game-card" href="/connections">
       <span class="game-icon icon-connections" aria-hidden="true">
         <span class="c t0 bar"></span>
@@ -219,7 +238,7 @@
   <p class="menu-foot brand-foot">Brought to you by <a href="https://theduckynerdball.com" target="_blank" rel="noopener">The Ducky Nerdball</a> &#129414;</p>
 </main>
 
-<script src="common.js?v=14"></script>
+<script src="common.js?v=15"></script>
 <script>
 (() => {
   const S = Shared;
@@ -318,6 +337,16 @@
     wsSummary.length ? `Today: ${wsSummary.join(" · ")}` : "Today's word search is waiting",
     wsSummary.length
   );
+
+  const jb = S.load(`jumbly:daily:${today}`);
+  if (jb && jb.over) {
+    set("status-jumbly", `Today: ✓ ${(jb.found || []).length}/${jb.total || ""} words`, true);
+    recapLines.push(`🦆 Jumbly: ${(jb.found || []).length}/${jb.total || ""} words`);
+  } else if (jb && jb.started) {
+    set("status-jumbly", `Today: in progress · ${(jb.found || []).length}/${jb.total || ""} words`, true);
+  } else {
+    set("status-jumbly", "Today's letters are waiting");
+  }
 
   const mini = S.load(`mini:daily:${today}`);
   if (mini && mini.over) {

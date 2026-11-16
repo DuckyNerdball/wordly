@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#f3f1ea">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Jumbly — Ducky Dailies</title>
+<script>try{var t=localStorage.getItem("wordly:theme")||"ducky";document.documentElement.setAttribute("data-theme",t);var s=localStorage.getItem("wordly:textScale");if(s)document.documentElement.style.setProperty("--text-scale",s)}catch(e){}</script>
+<link rel="icon" type="image/png" href="icon.png">
+<link rel="apple-touch-icon" href="icon.png">
+<link rel="manifest" href="manifest.json">
+<link rel="stylesheet" href="style.css?v=15">
+<link rel="stylesheet" href="games.css?v=15">
+</head>
+<body class="game-jumbly">
+<div id="toast-container" class="toast-container" aria-live="polite"></div>
+
+<header class="app-header">
+  <div class="header-row title-row">
+    <div class="header-side">
+      <a href="/" class="icon-btn" aria-label="All games" title="All games">&#8962;</a>
+      <button id="help-btn" class="icon-btn" aria-label="How to play" title="How to play">?</button>
+    </div>
+    <h1 class="app-title">JUMBLY</h1>
+    <div class="header-side header-side-end">
+      <button id="player-btn" class="icon-btn" aria-label="Player profile" title="Player profile">&#128100;</button>
+    </div>
+  </div>
+
+  <div class="header-row controls-row">
+    <div class="mode-toggle" role="group" aria-label="Game mode">
+      <button class="mode-btn active" data-mode="daily">Daily</button>
+      <button class="mode-btn" data-mode="practice">Practice</button>
+    </div>
+    <button id="theme-btn" class="icon-btn" aria-label="Change theme" title="Change theme">&#9681;</button>
+    <button id="new-game-btn" class="icon-btn hidden" aria-label="New puzzle" title="New puzzle">&#8635;</button>
+  </div>
+</header>
+
+<main class="game-main jumbly-main">
+  <div class="jumbly-progress" aria-live="polite">
+    <span id="jb-found-count">Found 0 of 0 words</span>
+    <span id="jb-bonus-count" class="jb-bonus-count"></span>
+  </div>
+
+  <div id="jb-board" class="jb-board" aria-label="Words to find"></div>
+
+  <div id="jb-guess" class="jb-guess" aria-live="polite"></div>
+
+  <div id="jb-letters" class="jb-letters" role="group" aria-label="Letters"></div>
+
+  <div class="jb-controls">
+    <button id="jb-clear" class="pill-btn" type="button">Clear</button>
+    <button id="jb-delete" class="pill-btn" type="button">Delete</button>
+    <button id="jb-shuffle" class="pill-btn" type="button">&#10227; Mix</button>
+    <button id="jb-enter" class="primary-btn jb-enter" type="button">Enter</button>
+  </div>
+
+  <div class="jb-controls jb-controls-secondary">
+    <button id="jb-hint" class="pill-btn" type="button">&#128161; Hint</button>
+    <button id="jb-reveal" class="pill-btn" type="button">Show all answers</button>
+  </div>
+</main>
+
+<!-- How to play -->
+<div id="help-modal" class="modal-overlay hidden">
+  <div class="modal">
+    <button class="modal-close" data-close="help-modal" aria-label="Close">&times;</button>
+    <h2>How to Play Jumbly</h2>
+    <p>Six letters are jumbled up. Find every word hidden inside them.</p>
+    <ul class="help-list">
+      <li>Tap letters (or type) to spell a word, then press <strong>Enter</strong>.</li>
+      <li>Words are 3 to 6 letters long. Each letter can be used once per word.</li>
+      <li>The empty boxes show how many words are left and how long each one is.</li>
+      <li>At least one word uses <strong>all six letters</strong> &mdash; that's the big one.</li>
+      <li>Real words that aren't on the board still count as <strong>bonus words</strong>.</li>
+      <li><strong>Mix</strong> shuffles the letters if you're stuck. <strong>Hint</strong> shows the first letter of a word you haven't found.</li>
+    </ul>
+    <p><strong>Daily</strong> gives everyone the same letters, resetting at midnight. <strong>Practice</strong> gives a new puzzle whenever you like. There's no timer &mdash; take your time.</p>
+    <p class="help-keys">Keyboard: type letters, <kbd>Enter</kbd> to submit, <kbd>Backspace</kbd> to delete, <kbd>Space</kbd> to mix.</p>
+  </div>
+</div>
+
+<!-- Finished -->
+<div id="result-modal" class="modal-overlay hidden">
+  <div class="modal">
+    <button class="modal-close" data-close="result-modal" aria-label="Close">&times;</button>
+    <h2 id="result-title">You found them all!</h2>
+    <p id="result-text" class="result-text"></p>
+    <button id="share-btn" class="primary-btn">Copy results</button>
+    <button id="play-again-btn" class="primary-btn hidden">New Puzzle</button>
+  </div>
+</div>
+
+<script src="common.js?v=15"></script>
+<script src="words-jumbly.js?v=15"></script>
+<script src="jumbly.js?v=15"></script>
+</body>
+</html>
