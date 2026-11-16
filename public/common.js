@@ -284,7 +284,7 @@ window.Shared = (() => {
               <span class="archive-day-label">${escapeHtml(formatDateLabel(d))}</span>
               <span class="archive-day-badge">${escapeHtml(badge)}</span>
             </span>
-            <span class="archive-day-meta">${escapeHtml(st.detail || d)}</span>
+            <span class="archive-day-meta">${escapeHtml(st.detail && st.detail !== d ? st.detail : new Date(d + "T12:00:00").toLocaleDateString(undefined, { weekday: "long" }))}</span>
           </button>`);
       }
       list.innerHTML = items.join("");
