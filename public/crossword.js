@@ -395,7 +395,9 @@
       state.wrong[idx] = false;
     }
     fxType(idx);
-    completedWordsAt(idx).filter((w) => !wasDone.includes(w.dir)).forEach(fxWord);
+    const newlyDone = completedWordsAt(idx).filter((w) => !wasDone.includes(w.dir));
+    newlyDone.forEach(fxWord);
+    sfx(newlyDone.length ? "word" : "type");
 
     if (checkSolved()) return;
 
@@ -432,6 +434,7 @@
     if (state.entries[idx] !== "" && !isLocked(idx)) {
       state.entries[idx] = "";
       state.wrong[idx] = false;
+      sfx("erase");
       render();
       persist();
       return;
@@ -475,6 +478,7 @@
       }
     }
     S.showToast(errors ? `${errors} wrong letter${errors === 1 ? "" : "s"} marked` : "Word looks good!");
+    sfx(errors ? "wrong" : "word");
     render();
     persist();
   }
@@ -491,6 +495,7 @@
     state.entries[idx] = state.puzzle.grid[idx];
     state.hinted[idx] = true;
     state.wrong[idx] = false;
+    sfx("reveal");
     if (!checkSolved()) {
       render();
       persist();
@@ -508,6 +513,7 @@
       state.hinted[i] = true;
       state.wrong[i] = false;
     }
+    sfx("reveal");
     if (!checkSolved()) {
       render();
       persist();
@@ -524,6 +530,7 @@
     for (let i = 0; i < total; i++) {
       if (grid[i] !== "." && state.entries[i] !== grid[i]) {
         S.showToast("Almost! At least one square isn't quite right.");
+        sfx("wrong");
         render();
         persist();
         return false;
@@ -536,7 +543,11 @@
     persist();
     state.newUnlocks = recordSolve();
     fxSolve();
-    if (state.newUnlocks.length) S.showToast(`🎁 Unlocked: ${state.newUnlocks.map((x) => x.name).join(", ")}`, 2600);
+    sfx("solve");
+    if (state.newUnlocks.length) {
+      S.showToast(`🎁 Unlocked: ${state.newUnlocks.map((x) => x.name).join(", ")}`, 2600);
+      setTimeout(() => sfx("unlock"), 900);
+    }
     if (state.mode === "daily" && !state.submitted) submitResult();
     setTimeout(showResult, 350);
     return true;
@@ -1227,13 +1238,332 @@
     else row.appendChild(btn);
   })();
 
+  // ---------- Sound: tiny WebAudio synth, no audio files ----------
+  const VOLUME_KEY = "crossy:volume";
+  const VOLUMES = { high: 0.55, low: 0.2, mute: 0 };
+  let volumeSetting = (() => {
+    try {
+      const v = localStorage.getItem(VOLUME_KEY);
+      return v in VOLUMES ? v : "low";
+    } catch {
+      return "low";
+    }
+  })();
+  let actx = null;
+  function audio() {
+    if (!VOLUMES[volumeSetting]) return null;
+    if (!actx) {
+      try {
+        actx = new (window.AudioContext || window.webkitAudioContext)();
+      } catch {
+        return null;
+      }
+    }
+    if (actx.state === "suspended") actx.resume();
+    return actx;
+  }
+  function tone(freq, dur, { type = "sine", gain = 1, at = 0, slide = 0, attack = 0.004 } = {}) {
+    const ctx = audio();
+    if (!ctx) return;
+    const t = ctx.currentTime + at;
+    const o = ctx.createOscillator();
+    const g = ctx.createGain();
+    o.type = type;
+    o.frequency.setValueAtTime(freq, t);
+    if (slide) o.frequency.exponentialRampToValueAtTime(Math.max(30, freq * slide), t + dur);
+    const peak = VOLUMES[volumeSetting] * gain;
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(Math.max(0.0002, peak), t + attack);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(g).connect(ctx.destination);
+    o.start(t);
+    o.stop(t + dur + 0.02);
+  }
+  function noise(dur, { gain = 1, at = 0, hp = 2000 } = {}) {
+    const ctx = audio();
+    if (!ctx) return;
+    const t = ctx.currentTime + at;
+    const buf = ctx.createBuffer(1, Math.ceil(ctx.sampleRate * dur), ctx.sampleRate);
+    const d = buf.getChannelData(0);
+    for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / d.length) ** 3;
+    const src = ctx.createBufferSource();
+    src.buffer = buf;
+    const f = ctx.createBiquadFilter();
+    f.type = "highpass";
+    f.frequency.value = hp;
+    const g = ctx.createGain();
+    g.gain.value = VOLUMES[volumeSetting] * gain;
+    src.connect(f).connect(g).connect(ctx.destination);
+    src.start(t);
+  }
+  const notes = (list, step, opts) => list.forEach((f, i) => tone(f, opts.dur || 0.18, { ...opts, at: i * step }));
+  // Sound packs (one is picked in the Locker). Events: type, erase, word, wrong, reveal, solve, unlock.
+  const SOUND_PACKS = {
+    classic: {
+      type: () => tone(720, 0.05, { type: "triangle", gain: 0.5 }),
+      erase: () => tone(420, 0.05, { type: "triangle", gain: 0.35, slide: 0.8 }),
+      word: () => notes([660, 990], 0.07, { type: "sine", gain: 0.6, dur: 0.16 }),
+      wrong: () => tone(170, 0.22, { type: "square", gain: 0.25, slide: 0.85 }),
+      reveal: () => tone(520, 0.12, { type: "triangle", gain: 0.5, slide: 1.5 }),
+      solve: () => notes([523, 659, 784, 1047], 0.11, { type: "triangle", gain: 0.7, dur: 0.3 }),
+      unlock: () => notes([1047, 1319, 1568, 2093], 0.07, { type: "sine", gain: 0.45, dur: 0.22 }),
+    },
+    typewriter: {
+      type: () => { noise(0.03, { gain: 0.9, hp: 2500 }); tone(140, 0.03, { type: "square", gain: 0.12 }); },
+      erase: () => noise(0.05, { gain: 0.5, hp: 900 }),
+      word: () => tone(2100, 0.5, { type: "sine", gain: 0.35 }),
+      wrong: () => { noise(0.08, { gain: 0.8, hp: 300 }); tone(120, 0.12, { type: "square", gain: 0.2 }); },
+      reveal: () => noise(0.12, { gain: 0.6, hp: 1500 }),
+      solve: () => { for (let i = 0; i < 6; i++) noise(0.03, { gain: 0.8, hp: 2200, at: i * 0.06 }); tone(2100, 0.9, { type: "sine", gain: 0.45, at: 0.42 }); },
+      unlock: () => [0, 0.18].forEach((at) => tone(2100, 0.5, { type: "sine", gain: 0.35, at })),
+    },
+    marimba: {
+      type: () => tone([523, 587, 659, 784, 880][Math.floor(Math.random() * 5)], 0.18, { type: "sine", gain: 0.45, attack: 0.002 }),
+      erase: () => tone(392, 0.14, { type: "sine", gain: 0.3 }),
+      word: () => notes([659, 784, 1047], 0.08, { type: "sine", gain: 0.5, dur: 0.3 }),
+      wrong: () => notes([311, 294], 0.1, { type: "sine", gain: 0.4, dur: 0.25 }),
+      reveal: () => tone(880, 0.3, { type: "sine", gain: 0.4 }),
+      solve: () => notes([523, 659, 784, 880, 1047, 1319], 0.09, { type: "sine", gain: 0.55, dur: 0.5 }),
+      unlock: () => notes([1319, 1568, 2093], 0.08, { type: "sine", gain: 0.45, dur: 0.4 }),
+    },
+    chiptune: {
+      type: () => tone(990, 0.04, { type: "square", gain: 0.18 }),
+      erase: () => tone(330, 0.06, { type: "square", gain: 0.15, slide: 0.6 }),
+      word: () => notes([784, 1047, 1568], 0.05, { type: "square", gain: 0.2, dur: 0.08 }),
+      wrong: () => tone(110, 0.25, { type: "sawtooth", gain: 0.2, slide: 0.7 }),
+      reveal: () => tone(440, 0.15, { type: "square", gain: 0.18, slide: 2 }),
+      solve: () => notes([523, 659, 784, 1047, 784, 1047, 1319, 1568], 0.075, { type: "square", gain: 0.22, dur: 0.12 }),
+      unlock: () => notes([1568, 2093, 2637, 3136], 0.05, { type: "square", gain: 0.16, dur: 0.1 }),
+    },
+  };
+  function sfx(event) {
+    if (volumeSetting === "mute") return;
+    try {
+      let id = "classic";
+      try {
+        id = locker.fx.sound || "classic";
+      } catch {
+        // locker not ready yet
+      }
+      const pack = SOUND_PACKS[id] || SOUND_PACKS.classic;
+      if (pack[event]) pack[event]();
+    } catch {
+      // audio is best-effort
+    }
+  }
+  function volumeIcon() {
+    return { high: "&#128266;", low: "&#128265;", mute: "&#128263;" }[volumeSetting];
+  }
+  (function initVolume() {
+    const row = document.querySelector(".controls-row");
+    if (!row || document.getElementById("volume-btn")) return;
+    const btn = document.createElement("button");
+    btn.id = "volume-btn";
+    btn.type = "button";
+    btn.className = "icon-btn labeled-btn";
+    const paint = () => {
+      const label = { high: "Loud", low: "Quiet", mute: "Muted" }[volumeSetting];
+      btn.innerHTML = `<span class="btn-icon" aria-hidden="true">${volumeIcon()}</span><span class="btn-label">${label}</span>`;
+      btn.title = `Sound: ${label} (click to change)`;
+      btn.setAttribute("aria-label", `Sound ${label}`);
+    };
+    paint();
+    btn.addEventListener("click", () => {
+      volumeSetting = { low: "high", high: "mute", mute: "low" }[volumeSetting];
+      try {
+        localStorage.setItem(VOLUME_KEY, volumeSetting);
+      } catch {
+        // ignore
+      }
+      paint();
+      sfx("word");
+    });
+    row.appendChild(btn);
+  })();
+
+  // ---------- Guided Look: ranked fills for the current word from the letters you have ----------
+  let guideWords = null;
+  let guideLoading = null;
+  function loadGuideWords() {
+    if (guideWords) return Promise.resolve(guideWords);
+    if (guideLoading) return guideLoading;
+    guideLoading = new Promise((resolve, reject) => {
+      const s = document.createElement("script");
+      s.src = "/words-guide.js?v=1";
+      s.onload = () => {
+        const raw = window.CROSSY_GUIDE_WORDS || {};
+        guideWords = {};
+        Object.entries(raw).forEach(([len, buckets]) => {
+          guideWords[len] = [];
+          buckets.forEach(([z, words]) => words.split(" ").forEach((w) => guideWords[len].push([w.toUpperCase(), z / 10])));
+        });
+        resolve(guideWords);
+      };
+      s.onerror = () => {
+        guideLoading = null;
+        reject(new Error("Couldn't load the word list"));
+      };
+      document.head.appendChild(s);
+    });
+    return guideLoading;
+  }
+
+  // Answers (and their clues) from every other puzzle in this collection: crossword vocabulary repeats a lot.
+  let pastIndex = null;
+  function buildPastIndex() {
+    if (pastIndex) return pastIndex;
+    pastIndex = new Map();
+    const curId = state.puzzle.id;
+    CFG.puzzles.forEach((raw) => {
+      if (!raw || raw.id === curId) return;
+      let pz;
+      try {
+        pz = hydratePuzzle(raw);
+      } catch {
+        return;
+      }
+      [...pz.acrossWords, ...pz.downWords].forEach((w) => {
+        const ans = w.cells.map((i) => pz.grid[i]).join("");
+        if (!pastIndex.has(ans)) pastIndex.set(ans, []);
+        pastIndex.get(ans).push(w.clue);
+      });
+    });
+    return pastIndex;
+  }
+  const clueWords = (c) => new Set(String(c).toLowerCase().replace(/[^a-z0-9 ]/g, " ").split(/\s+/).filter((t) => t.length > 2));
+  function clueSimilarity(a, b) {
+    const A = clueWords(a);
+    const B = clueWords(b);
+    if (!A.size || !B.size) return 0;
+    let n = 0;
+    A.forEach((t) => B.has(t) && n++);
+    return n / Math.min(A.size, B.size);
+  }
+
+  function guideFor(word) {
+    const pattern = word.cells.map((i) => state.entries[i] || "");
+    const answer = word.cells.map((i) => state.puzzle.grid[i]).join("");
+    const fits = (w) => pattern.every((ch, k) => !ch || w[k] === ch);
+    const list = (guideWords[String(pattern.length)] || []).filter(([w]) => fits(w));
+    const seen = new Set(list.map(([w]) => w));
+    // The real fill can be a phrase or proper noun the dictionary lacks; if your letters allow it, give it a middling score.
+    if (fits(answer) && !seen.has(answer)) {
+      const mid = list.length ? list[Math.floor(list.length / 2)][1] : 2.5;
+      list.push([answer, Math.max(2, mid)]);
+    }
+    const past = buildPastIndex();
+    const weigh = ([w, z]) => {
+      let m = 1;
+      let tag = "";
+      const clues = past.get(w);
+      if (clues) {
+        const sim = Math.max(...clues.map((c) => clueSimilarity(c, word.clue)));
+        if (sim >= 0.5) { m = 60; tag = "similar clue before"; }
+        else { m = 4; tag = "past answer"; }
+      }
+      return { w, raw: 10 ** z * m, tag };
+    };
+    const scored = list.map(weigh);
+    const total = scored.reduce((s, x) => s + x.raw, 0) || 1;
+    const ranked = scored.map((x) => ({ ...x, p: x.raw / total })).sort((a, b) => b.p - a.p);
+    let top = ranked.slice(0, 8);
+    if (fits(answer) && !top.some((x) => x.w === answer)) top = [...top.slice(0, 7), ranked.find((x) => x.w === answer)].sort((a, b) => b.p - a.p);
+    // letter odds for each empty square across every candidate
+    const odds = pattern.map((ch, k) => {
+      if (ch) return null;
+      const m = {};
+      ranked.forEach(({ w, p }) => (m[w[k]] = (m[w[k]] || 0) + p));
+      const best = Object.entries(m).sort((a, b) => b[1] - a[1]).slice(0, 3);
+      const sum = Object.values(m).reduce((s, v) => s + v, 0) || 1;
+      return best.map(([l, v]) => [l, v / sum]);
+    });
+    return { pattern, top, odds, count: ranked.length, answerFits: fits(answer) };
+  }
+
+  function guideKey(word) {
+    return `${word.dir}:${word.num}`;
+  }
+
+  async function openGuide() {
+    if (!state || !state.puzzle || state.over) return;
+    const word = activeWord();
+    if (!word) return;
+    const body = document.getElementById("guide-body");
+    document.getElementById("guide-title").textContent = `${word.num} ${word.dir === "across" ? "Across" : "Down"}: ${word.clue}`;
+    body.innerHTML = `<p class="guide-note">Loading word list…</p>`;
+    S.openModal("guide-modal");
+    try {
+      await loadGuideWords();
+    } catch (err) {
+      body.innerHTML = `<p class="guide-note">${S.escapeHtml(err.message)}</p>`;
+      return;
+    }
+    state.guided = state.guided || {};
+    if (!state.guided[guideKey(word)]) {
+      state.guided[guideKey(word)] = true;
+      state.hints += 1;
+      persist();
+    }
+    const g = guideFor(word);
+    const e = S.escapeHtml;
+    const pct = (p) => (p >= 0.995 ? "99%" : p < 0.005 ? "<1%" : `${Math.round(p * 100)}%`);
+    const patternHtml = g.pattern.map((ch) => `<span class="guide-sq ${ch ? "have" : ""}">${ch || ""}</span>`).join("");
+    const oddsHtml = g.odds
+      .map((o) => `<span class="guide-odd">${o ? o.map(([l, p]) => `<b>${l}</b>${pct(p)}`).join("<br>") : "&nbsp;"}</span>`)
+      .join("");
+    const rows = g.top
+      .map(({ w, p, tag }) => `<li><span class="guide-word">${w.split("").map((ch, k) => `<i class="${g.pattern[k] ? "have" : ""}">${ch}</i>`).join("")}</span><span class="guide-bar"><span style="width:${Math.max(2, Math.round(p * 100))}%"></span></span><span class="guide-p">${pct(p)}</span>${tag ? `<span class="guide-tag">&#128240; ${tag}</span>` : ""}</li>`)
+      .join("");
+    const filled = g.pattern.filter(Boolean).length;
+    body.innerHTML = `
+      <div class="guide-pattern">${patternHtml}</div>
+      ${g.count ? `<div class="guide-odds">${oddsHtml}</div>` : ""}
+      ${g.count ? `<ol class="guide-list">${rows}</ol>` : ""}
+      <p class="guide-note">${
+        !g.count
+          ? "Nothing in the word list fits those letters. One of them is probably wrong. Check the crossings."
+          : !g.answerFits
+            ? `${g.count} word${g.count === 1 ? "" : "s"} fit your letters, but none may be the answer: a letter you've entered could be wrong.`
+            : `${g.count.toLocaleString()} word${g.count === 1 ? "" : "s"} fit the ${filled} letter${filled === 1 ? "" : "s"} you have. If your letters are right, the answer is always somewhere in this list. Odds blend how common each word is with answers from your other puzzles (&#128240;); they don't read the clue.${filled === 0 ? " Fill in a crossing or two and the list gets much sharper." : ""}`
+      }</p>
+      <p class="guide-cost">Guided Look counts as one hint for this word (opening it again is free).</p>`;
+    sfx("reveal");
+  }
+
+  (function initGuide() {
+    document.body.insertAdjacentHTML(
+      "beforeend",
+      `<div id="guide-modal" class="modal-overlay hidden"><div class="modal guide-modal">
+        <button class="modal-close" data-close="guide-modal" aria-label="Close">&times;</button>
+        <h2>&#128269; Guided Look</h2><p id="guide-title" class="archive-sub"></p><div id="guide-body"></div></div></div>`
+    );
+    const modal = document.getElementById("guide-modal");
+    modal.querySelector(".modal-close").addEventListener("click", () => S.closeModal("guide-modal"));
+    modal.addEventListener("click", (ev) => { if (ev.target === modal) S.closeModal("guide-modal"); });
+    const btn = document.createElement("button");
+    btn.id = "guide-btn";
+    btn.type = "button";
+    btn.textContent = "Guided Look";
+    btn.title = "Ranked words that fit the letters you have (counts as a hint)";
+    btn.addEventListener("click", openGuide);
+    const anchor = els.revealWord || els.checkWord;
+    if (anchor && anchor.parentNode) {
+      btn.className = anchor.className;
+      anchor.parentNode.insertBefore(btn, anchor.nextSibling);
+    } else {
+      const row = document.querySelector(".controls-row");
+      btn.className = "icon-btn labeled-btn";
+      if (row) row.appendChild(btn);
+    }
+  })();
+
   // ---------- Locker: skins & effects earned by playing (shared by every Crossy page) ----------
   const LOCKER_KEY = "crossy:locker";
   const PACE = { quick: 4000, fast: 2500, blazing: 1600 }; // ms per white square
   const lockerDefaults = () => ({
     solves: 0, clean: 0, quick: 0, fast: 0, blazing: 0, pbs: 0,
     best: {}, done: {}, streak: { last: "", cur: 0, max: 0 },
-    seen: [], skin: "classic", fx: { type: "none", word: "none", solve: "none" },
+    seen: [], skin: "classic", fx: { type: "none", word: "none", solve: "none", sound: "classic" },
   });
   function loadLocker() {
     const d = lockerDefaults();
@@ -1278,12 +1608,18 @@
       { id: "fireworks", name: "Fireworks", desc: "Play 7 days in a row", req: (p) => [p.streak.max, 7] },
       { id: "ducks", name: "Duck parade", desc: "Solve 50 puzzles", req: (p) => [p.solves, 50] },
     ],
+    sound: [
+      { id: "classic", name: "Classic", desc: "", req: () => [1, 1] },
+      { id: "typewriter", name: "Typewriter", desc: "Solve 10 puzzles", req: (p) => [p.solves, 10] },
+      { id: "marimba", name: "Marimba", desc: "Play 3 days in a row", req: (p) => [p.streak.max, 3] },
+      { id: "chiptune", name: "Chiptune", desc: "A Blazing solve (under 1.6s per square)", req: (p) => [p.blazing, 1] },
+    ],
   };
   const isUnlocked = (item) => { const [c, g] = item.req(locker); return c >= g; };
   const allItems = () => [
     ...SKINS.map((x) => ({ ...x, kind: "skin" })),
     ...Object.entries(FX).flatMap(([slot, list]) => list.map((x) => ({ ...x, kind: "fx", slot }))),
-  ].filter((x) => x.id !== "classic" && x.id !== "none");
+  ].filter((x) => !(x.kind === "skin" && x.id === "classic") && x.id !== "none" && !(x.slot === "sound" && x.id === "classic"));
   const itemKey = (x) => (x.kind === "skin" ? `skin:${x.id}` : `fx:${x.slot}:${x.id}`);
   const reducedMotion = () => window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
@@ -1326,7 +1662,7 @@
     // Auto-equip the first unlock in each empty slot so new players see their reward straight away.
     fresh.forEach((x) => {
       if (x.kind === "skin" && locker.skin === "classic") locker.skin = x.id;
-      if (x.kind === "fx" && locker.fx[x.slot] === "none") locker.fx[x.slot] = x.id;
+      if (x.kind === "fx" && x.slot !== "sound" && locker.fx[x.slot] === "none") locker.fx[x.slot] = x.id;
     });
     saveLocker();
     applySkin();
@@ -1447,7 +1783,7 @@
   function unlockBlurb(items) {
     if (!items.length) return "";
     return `<div class="locker-new"><div class="locker-new-title">🎁 New unlock${items.length > 1 ? "s" : ""}</div>${items
-      .map((x) => `<div class="locker-new-item">${x.kind === "skin" ? "Skin" : `${x.slot[0].toUpperCase()}${x.slot.slice(1)} effect`}: <b>${S.escapeHtml(x.name)}</b></div>`)
+      .map((x) => `<div class="locker-new-item">${x.kind === "skin" ? "Skin" : (x.slot === "sound" ? "Sound pack" : `${x.slot[0].toUpperCase()}${x.slot.slice(1)} effect`)}: <b>${S.escapeHtml(x.name)}</b></div>`)
       .join("")}<button type="button" class="pill-btn locker-open-btn">Open Locker</button></div>`;
   }
 
@@ -1468,7 +1804,7 @@
         </button>`;
     }).join("");
     const slots = Object.entries(FX).map(([slot, list]) => {
-      const label = { type: "When you type", word: "When a word is right", solve: "When you solve" }[slot];
+      const label = { type: "When you type", word: "When a word is right", solve: "When you solve", sound: "Sound pack" }[slot];
       return `<div class="locker-slot"><h4>${label}</h4><div class="locker-chips">${list.map((x) => {
         const open = isUnlocked(x);
         const on = locker.fx[slot] === x.id;
@@ -1499,6 +1835,7 @@
     body.querySelectorAll("[data-fx]").forEach((b) => b.addEventListener("click", () => {
       locker.fx[b.dataset.slot] = b.dataset.fx; saveLocker(); renderLocker();
       if (b.dataset.slot === "solve" && b.dataset.fx !== "none") fxSolve();
+      if (b.dataset.slot === "sound") sfx("solve");
     }));
   }
   function openLocker() {

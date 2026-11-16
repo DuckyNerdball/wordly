@@ -3343,3 +3343,22 @@ body[class*="cw-skin-"]:not(.cw-skin-classic) .cw-letter { font-weight: var(--sk
 .locker-open-btn { margin-top: 0.45rem; }
 @media (max-width: 480px) { .locker-stats { grid-template-columns: repeat(3, 1fr); } }
 @media (prefers-reduced-motion: reduce) { .cw-skin-aurora .cw-board { animation: none; } }
+
+/* Guided Look */
+.guide-modal { max-width: 460px; }
+.guide-pattern, .guide-odds { display: flex; gap: 3px; justify-content: center; margin: 0.4rem 0; }
+.guide-sq { width: 2rem; height: 2rem; border: 2px solid var(--color-border-strong); border-radius: 4px; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 1.1rem; }
+.guide-sq.have { background: var(--color-correct); color: var(--key-text-on-color); border-color: var(--color-correct); }
+.guide-odd { width: 2rem; font-size: 0.62rem; line-height: 1.25; text-align: center; opacity: 0.85; }
+.guide-odd b { font-size: 0.78rem; margin-right: 1px; }
+.guide-list { list-style: none; padding: 0; margin: 0.6rem 0; display: flex; flex-direction: column; gap: 0.3rem; }
+.guide-list li { display: grid; grid-template-columns: auto 1fr 3rem; align-items: center; gap: 0.5rem; }
+.guide-word { font-family: ui-monospace, "Courier New", monospace; font-weight: 700; letter-spacing: 0.12em; font-size: 1rem; }
+.guide-word i { font-style: normal; opacity: 0.85; }
+.guide-word i.have { color: var(--color-correct); opacity: 1; }
+.guide-bar { height: 8px; border-radius: 4px; background: color-mix(in srgb, var(--color-text) 12%, transparent); overflow: hidden; }
+.guide-bar span { display: block; height: 100%; background: var(--color-present); }
+.guide-p { text-align: right; font-variant-numeric: tabular-nums; font-size: 0.85rem; }
+.guide-note { font-size: 0.8rem; opacity: 0.85; text-align: center; }
+.guide-cost { font-size: 0.72rem; opacity: 0.65; text-align: center; margin-top: 0.3rem; }
+.guide-tag { grid-column: 1 / -1; font-size: 0.68rem; opacity: 0.75; margin-top: -0.25rem; }
