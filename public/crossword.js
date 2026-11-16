@@ -388,11 +388,14 @@
     ensureStarted();
 
     const idx = state.cursor;
+    const wasDone = completedWordsAt(idx).map((w) => w.dir);
     // Revealed cells are locked to the correct letter.
     if (!(state.hinted[idx] && state.entries[idx] === state.puzzle.grid[idx])) {
       state.entries[idx] = letter;
       state.wrong[idx] = false;
     }
+    fxType(idx);
+    completedWordsAt(idx).filter((w) => !wasDone.includes(w.dir)).forEach(fxWord);
 
     if (checkSolved()) return;
 
@@ -531,6 +534,9 @@
     if (stopwatch) state.activeMs = stopwatch.stop();
     render();
     persist();
+    state.newUnlocks = recordSolve();
+    fxSolve();
+    if (state.newUnlocks.length) S.showToast(`🎁 Unlocked: ${state.newUnlocks.map((x) => x.name).join(", ")}`, 2600);
     if (state.mode === "daily" && !state.submitted) submitResult();
     setTimeout(showResult, 350);
     return true;
@@ -734,6 +740,13 @@
         <span class="result-stat-label">Hints</span>
         <span class="result-stat-value">${state.hints === 0 ? "0 ★" : state.hints}</span>
       </div>`;
+    let unl = document.getElementById("locker-result");
+    if (!unl) {
+      unl = document.createElement("div");
+      unl.id = "locker-result";
+      document.getElementById("result-stats").insertAdjacentElement("afterend", unl);
+    }
+    unl.innerHTML = unlockBlurb(state.newUnlocks || []);
 
     const cd = document.getElementById("result-countdown");
     const again = document.getElementById("play-again-btn");
@@ -1211,6 +1224,315 @@
     });
     const lib = document.getElementById("library-btn");
     if (lib && lib.parentNode === row) row.insertBefore(btn, lib);
+    else row.appendChild(btn);
+  })();
+
+  // ---------- Locker: skins & effects earned by playing (shared by every Crossy page) ----------
+  const LOCKER_KEY = "crossy:locker";
+  const PACE = { quick: 4000, fast: 2500, blazing: 1600 }; // ms per white square
+  const lockerDefaults = () => ({
+    solves: 0, clean: 0, quick: 0, fast: 0, blazing: 0, pbs: 0,
+    best: {}, done: {}, streak: { last: "", cur: 0, max: 0 },
+    seen: [], skin: "classic", fx: { type: "none", word: "none", solve: "none" },
+  });
+  function loadLocker() {
+    const d = lockerDefaults();
+    const s = S.load(LOCKER_KEY) || {};
+    return { ...d, ...s, best: { ...(s.best || {}) }, done: { ...(s.done || {}) }, streak: { ...d.streak, ...(s.streak || {}) }, fx: { ...d.fx, ...(s.fx || {}) }, seen: s.seen || [] };
+  }
+  let locker = loadLocker();
+  const saveLocker = () => S.save(LOCKER_KEY, locker);
+
+  // req(stats) -> [current, goal]
+  const SKINS = [
+    { id: "classic", name: "Classic", desc: "The board you started with", req: () => [1, 1] },
+    { id: "newsprint", name: "Newsprint", desc: "Solve 1 puzzle", req: (p) => [p.solves, 1] },
+    { id: "pond", name: "Lily Pond", desc: "Solve 5 puzzles with no hints", req: (p) => [p.clean, 5] },
+    { id: "chalk", name: "Chalkboard", desc: "Solve 10 puzzles", req: (p) => [p.solves, 10] },
+    { id: "blueprint", name: "Blueprint", desc: "A Quick solve (under 4s per square)", req: (p) => [p.quick, 1] },
+    { id: "neon", name: "Neon", desc: "Play 3 days in a row", req: (p) => [p.streak.max, 3] },
+    { id: "typewriter", name: "Typewriter", desc: "Solve 25 puzzles", req: (p) => [p.solves, 25] },
+    { id: "midnight", name: "Midnight Gold", desc: "Play 7 days in a row", req: (p) => [p.streak.max, 7] },
+    { id: "arcade", name: "Arcade", desc: "A Blazing solve (under 1.6s per square)", req: (p) => [p.blazing, 1] },
+    { id: "sakura", name: "Sakura", desc: "Beat your own best time 5 times", req: (p) => [p.pbs, 5] },
+    { id: "gilded", name: "Gilded", desc: "Solve 100 puzzles", req: (p) => [p.solves, 100] },
+    { id: "aurora", name: "Aurora", desc: "Play 30 days in a row", req: (p) => [p.streak.max, 30] },
+  ];
+  const FX = {
+    type: [
+      { id: "none", name: "Off", desc: "", req: () => [1, 1] },
+      { id: "pop", name: "Pop", desc: "Solve 3 puzzles", req: (p) => [p.solves, 3] },
+      { id: "ink", name: "Ink drop", desc: "Solve 10 puzzles with no hints", req: (p) => [p.clean, 10] },
+      { id: "spark", name: "Sparks", desc: "A Fast solve (under 2.5s per square)", req: (p) => [p.fast, 1] },
+    ],
+    word: [
+      { id: "none", name: "Off", desc: "", req: () => [1, 1] },
+      { id: "sweep", name: "Glow sweep", desc: "Solve 5 puzzles", req: (p) => [p.solves, 5] },
+      { id: "wave", name: "Wave", desc: "Play 3 days in a row", req: (p) => [p.streak.max, 3] },
+      { id: "stamp", name: "Ink stamp", desc: "Solve 15 puzzles with no hints", req: (p) => [p.clean, 15] },
+    ],
+    solve: [
+      { id: "none", name: "Off", desc: "", req: () => [1, 1] },
+      { id: "confetti", name: "Confetti", desc: "Solve 1 puzzle", req: (p) => [p.solves, 1] },
+      { id: "extra", name: "EXTRA! EXTRA!", desc: "Solve 25 puzzles with no hints", req: (p) => [p.clean, 25] },
+      { id: "fireworks", name: "Fireworks", desc: "Play 7 days in a row", req: (p) => [p.streak.max, 7] },
+      { id: "ducks", name: "Duck parade", desc: "Solve 50 puzzles", req: (p) => [p.solves, 50] },
+    ],
+  };
+  const isUnlocked = (item) => { const [c, g] = item.req(locker); return c >= g; };
+  const allItems = () => [
+    ...SKINS.map((x) => ({ ...x, kind: "skin" })),
+    ...Object.entries(FX).flatMap(([slot, list]) => list.map((x) => ({ ...x, kind: "fx", slot }))),
+  ].filter((x) => x.id !== "classic" && x.id !== "none");
+  const itemKey = (x) => (x.kind === "skin" ? `skin:${x.id}` : `fx:${x.slot}:${x.id}`);
+  const reducedMotion = () => window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  function applySkin() {
+    const skin = SKINS.find((s) => s.id === locker.skin && isUnlocked(s)) ? locker.skin : "classic";
+    SKINS.forEach((s) => document.body.classList.toggle(`cw-skin-${s.id}`, s.id === skin));
+  }
+
+  function dayDiff(a, b) {
+    return Math.round((new Date(`${b}T12:00:00`) - new Date(`${a}T12:00:00`)) / 86400000);
+  }
+
+  // Called once per solved puzzle. Returns the items this solve unlocked.
+  function recordSolve() {
+    const pz = state.puzzle;
+    const id = `${CFG.key}:${pz.id || state.index}`;
+    if (locker.done[id]) return [];
+    const before = new Set(allItems().filter(isUnlocked).map(itemKey));
+    const ms = Math.max(1, Math.round(state.activeMs || 0));
+    const pace = ms / Math.max(1, pz.whiteCount);
+    locker.done[id] = 1;
+    locker.solves += 1;
+    if (state.hints === 0) locker.clean += 1;
+    if (state.hints === 0 && pace <= PACE.quick) locker.quick += 1;
+    if (state.hints === 0 && pace <= PACE.fast) locker.fast += 1;
+    if (state.hints === 0 && pace <= PACE.blazing) locker.blazing += 1;
+    const sizeKey = `${CFG.key}:${pz.rows}x${pz.cols}`;
+    if (state.hints === 0) {
+      if (locker.best[sizeKey] && ms < locker.best[sizeKey]) locker.pbs += 1;
+      if (!locker.best[sizeKey] || ms < locker.best[sizeKey]) locker.best[sizeKey] = ms;
+    }
+    const today = S.todayDateString();
+    const st = locker.streak;
+    if (st.last !== today) {
+      st.cur = st.last && dayDiff(st.last, today) === 1 ? st.cur + 1 : 1;
+      st.last = today;
+      st.max = Math.max(st.max, st.cur);
+    }
+    const fresh = allItems().filter((x) => isUnlocked(x) && !before.has(itemKey(x)));
+    // Auto-equip the first unlock in each empty slot so new players see their reward straight away.
+    fresh.forEach((x) => {
+      if (x.kind === "skin" && locker.skin === "classic") locker.skin = x.id;
+      if (x.kind === "fx" && locker.fx[x.slot] === "none") locker.fx[x.slot] = x.id;
+    });
+    saveLocker();
+    applySkin();
+    return fresh;
+  }
+
+  // ----- effects -----
+  function cellEl(i) {
+    return els.board.querySelector(`.cw-cell[data-idx="${i}"]`);
+  }
+  function retrigger(el, cls, ms) {
+    if (!el) return;
+    el.classList.remove(cls);
+    void el.offsetWidth;
+    el.classList.add(cls);
+    setTimeout(() => el.classList.remove(cls), ms);
+  }
+  function fxType(idx) {
+    const kind = locker.fx.type;
+    if (kind === "none" || reducedMotion()) return;
+    const el = cellEl(idx);
+    if (kind === "pop") retrigger(el, "fx-pop", 260);
+    if (kind === "ink") retrigger(el, "fx-ink", 520);
+    if (kind === "spark") {
+      retrigger(el, "fx-spark", 420);
+      if (el) burst(el.getBoundingClientRect(), 7, ["#ffd34d", "#ff9f1c", "#fff3b0"], 0.6);
+    }
+  }
+  function fxWord(word) {
+    const kind = locker.fx.word;
+    if (kind === "none" || reducedMotion()) return;
+    word.cells.forEach((i, k) => {
+      const el = cellEl(i);
+      setTimeout(() => retrigger(el, `fx-${kind}`, 600), k * 45);
+    });
+  }
+  // words containing idx that just became fully and correctly filled
+  function completedWordsAt(idx) {
+    return [wordAt(idx, "across"), wordAt(idx, "down")].filter(
+      (w) => w && w.cells.every((i) => state.entries[i] === state.puzzle.grid[i])
+    );
+  }
+
+  let fxCanvas = null;
+  let fxParts = [];
+  let fxRaf = 0;
+  function fxLoop() {
+    const ctx = fxCanvas.getContext("2d");
+    ctx.clearRect(0, 0, fxCanvas.width, fxCanvas.height);
+    fxParts = fxParts.filter((p) => p.life > 0);
+    fxParts.forEach((p) => {
+      p.vy += p.g; p.vx *= 0.99; p.x += p.vx; p.y += p.vy; p.life -= 1; p.rot += p.vr;
+      ctx.save();
+      ctx.globalAlpha = Math.max(0, Math.min(1, p.life / 40));
+      ctx.translate(p.x, p.y); ctx.rotate(p.rot);
+      ctx.fillStyle = p.c;
+      if (p.shape === "dot") { ctx.beginPath(); ctx.arc(0, 0, p.s / 2, 0, 6.283); ctx.fill(); }
+      else ctx.fillRect(-p.s / 2, -p.s / 4, p.s, p.s / 2);
+      ctx.restore();
+    });
+    if (fxParts.length) fxRaf = requestAnimationFrame(fxLoop);
+    else { fxCanvas.remove(); fxCanvas = null; fxRaf = 0; }
+  }
+  function ensureCanvas() {
+    if (!fxCanvas) {
+      fxCanvas = document.createElement("canvas");
+      fxCanvas.className = "fx-canvas";
+      document.body.appendChild(fxCanvas);
+    }
+    const dpr = 1;
+    fxCanvas.width = window.innerWidth * dpr;
+    fxCanvas.height = window.innerHeight * dpr;
+    if (!fxRaf) fxRaf = requestAnimationFrame(fxLoop);
+  }
+  function burst(rect, n, colors, power = 1, shape = "dot") {
+    ensureCanvas();
+    const cx = rect.left + rect.width / 2;
+    const cy = rect.top + rect.height / 2;
+    for (let i = 0; i < n; i++) {
+      const a = Math.random() * 6.283;
+      const v = (1.5 + Math.random() * 3.5) * power;
+      fxParts.push({ x: cx, y: cy, vx: Math.cos(a) * v, vy: Math.sin(a) * v - 1.5 * power, g: 0.12, life: 30 + Math.random() * 25, c: colors[i % colors.length], s: 3 + Math.random() * 3, rot: 0, vr: 0, shape });
+    }
+  }
+  function confetti() {
+    ensureCanvas();
+    const colors = ["#f94144", "#f8961e", "#f9c74f", "#90be6d", "#43aa8b", "#577590", "#c77dff"];
+    for (let i = 0; i < 160; i++) {
+      fxParts.push({ x: Math.random() * window.innerWidth, y: -20 - Math.random() * 200, vx: (Math.random() - 0.5) * 2.5, vy: 2 + Math.random() * 3, g: 0.05, life: 150 + Math.random() * 80, c: colors[i % colors.length], s: 7 + Math.random() * 6, rot: Math.random() * 6, vr: (Math.random() - 0.5) * 0.3, shape: "rect" });
+    }
+  }
+  function fireworks() {
+    const palette = [["#ff4d6d", "#ffb3c1"], ["#4cc9f0", "#bde0fe"], ["#ffd60a", "#fff3b0"], ["#80ffdb", "#c7f9cc"], ["#c77dff", "#e0aaff"]];
+    for (let k = 0; k < 6; k++) {
+      setTimeout(() => {
+        const x = window.innerWidth * (0.2 + Math.random() * 0.6);
+        const y = window.innerHeight * (0.15 + Math.random() * 0.35);
+        burst({ left: x, top: y, width: 0, height: 0 }, 70, palette[k % palette.length], 1.8);
+      }, k * 380);
+    }
+  }
+  function overlayFx(cls, html, ms) {
+    const el = document.createElement("div");
+    el.className = `fx-overlay ${cls}`;
+    el.innerHTML = html;
+    document.body.appendChild(el);
+    setTimeout(() => el.remove(), ms);
+  }
+  function fxSolve() {
+    const kind = locker.fx.solve;
+    if (kind === "none" || reducedMotion()) return;
+    if (kind === "confetti") confetti();
+    if (kind === "fireworks") fireworks();
+    if (kind === "extra") overlayFx("fx-extra", `<div class="fx-extra-paper"><div class="fx-extra-kicker">EXTRA! EXTRA!</div><div class="fx-extra-head">PUZZLE SOLVED</div><div class="fx-extra-sub">${S.escapeHtml(S.formatTimer(state.activeMs))}${state.hints === 0 ? " &middot; no hints" : ""}</div></div>`, 2600);
+    if (kind === "ducks") overlayFx("fx-ducks", Array.from({ length: 7 }, (_, i) => `<span style="animation-delay:${i * 0.22}s">${i === 0 ? "🦆" : "🐥"}</span>`).join(""), 4200);
+  }
+
+  function unlockBlurb(items) {
+    if (!items.length) return "";
+    return `<div class="locker-new"><div class="locker-new-title">🎁 New unlock${items.length > 1 ? "s" : ""}</div>${items
+      .map((x) => `<div class="locker-new-item">${x.kind === "skin" ? "Skin" : `${x.slot[0].toUpperCase()}${x.slot.slice(1)} effect`}: <b>${S.escapeHtml(x.name)}</b></div>`)
+      .join("")}<button type="button" class="pill-btn locker-open-btn">Open Locker</button></div>`;
+  }
+
+  // ----- Locker modal -----
+  function lockerHtml() {
+    const e = S.escapeHtml;
+    const bar = (item) => {
+      const [c, g] = item.req(locker);
+      return `<div class="locker-bar"><span style="width:${Math.min(100, (100 * c) / g)}%"></span></div><div class="locker-req">${e(item.desc)} &middot; ${Math.min(c, g)}/${g}</div>`;
+    };
+    const skins = SKINS.map((s) => {
+      const open = isUnlocked(s);
+      const on = locker.skin === s.id;
+      return `<button type="button" class="locker-skin ${open ? "" : "locked"} ${on ? "on" : ""}" data-skin="${s.id}" ${open ? "" : "disabled"}>
+          <span class="locker-swatch cw-swatch-${s.id}"><i></i><i></i><i class="b"></i><i></i></span>
+          <span class="locker-name">${open ? "" : "🔒 "}${e(s.name)}${on ? " ✓" : ""}</span>
+          ${open ? "" : bar(s)}
+        </button>`;
+    }).join("");
+    const slots = Object.entries(FX).map(([slot, list]) => {
+      const label = { type: "When you type", word: "When a word is right", solve: "When you solve" }[slot];
+      return `<div class="locker-slot"><h4>${label}</h4><div class="locker-chips">${list.map((x) => {
+        const open = isUnlocked(x);
+        const on = locker.fx[slot] === x.id;
+        return `<button type="button" class="locker-chip ${on ? "on" : ""} ${open ? "" : "locked"}" data-slot="${slot}" data-fx="${x.id}" ${open ? "" : "disabled"} title="${e(x.desc)}">${open ? "" : "🔒 "}${e(x.name)}</button>`;
+      }).join("")}</div>${list.filter((x) => !isUnlocked(x)).map((x) => `<div class="locker-req">🔒 ${e(x.name)}: ${e(x.desc)} &middot; ${Math.min(...x.req(locker))}/${x.req(locker)[1]}</div>`).join("")}</div>`;
+    }).join("");
+    const st = locker.streak;
+    const cur = st.last && dayDiff(st.last, S.todayDateString()) <= 1 ? st.cur : 0;
+    return `
+      <div class="locker-stats">
+        <div><b>${locker.solves}</b><span>solved</span></div>
+        <div><b>${locker.clean}</b><span>no-hint</span></div>
+        <div><b>${cur}🔥</b><span>day streak</span></div>
+        <div><b>${st.max}</b><span>best streak</span></div>
+        <div><b>${locker.quick}</b><span>quick solves</span></div>
+      </div>
+      <h3>Board skins</h3><div class="locker-skins">${skins}</div>
+      <h3>Effects</h3>${slots}
+      <p class="locker-note">Speed counts only for no-hint solves: Quick is under 4s per white square, Fast under 2.5s, Blazing under 1.6s. Each puzzle counts once.</p>`;
+  }
+  function renderLocker() {
+    const body = document.getElementById("locker-body");
+    if (!body) return;
+    body.innerHTML = lockerHtml();
+    body.querySelectorAll("[data-skin]").forEach((b) => b.addEventListener("click", () => {
+      locker.skin = b.dataset.skin; saveLocker(); applySkin(); renderLocker();
+    }));
+    body.querySelectorAll("[data-fx]").forEach((b) => b.addEventListener("click", () => {
+      locker.fx[b.dataset.slot] = b.dataset.fx; saveLocker(); renderLocker();
+      if (b.dataset.slot === "solve" && b.dataset.fx !== "none") fxSolve();
+    }));
+  }
+  function openLocker() {
+    renderLocker();
+    S.openModal("locker-modal");
+  }
+
+  (function initLocker() {
+    applySkin();
+    document.body.insertAdjacentHTML(
+      "beforeend",
+      `<div id="locker-modal" class="modal-overlay hidden"><div class="modal modal-wide locker-modal">
+        <button class="modal-close" data-close="locker-modal" aria-label="Close">&times;</button>
+        <h2>🎨 Locker</h2><p class="archive-sub">Skins and effects you earn by solving. Progress is shared by every Crossy page on this device.</p>
+        <div id="locker-body"></div></div></div>`
+    );
+    const modal = document.getElementById("locker-modal");
+    modal.querySelector(".modal-close").addEventListener("click", () => S.closeModal("locker-modal"));
+    modal.addEventListener("click", (ev) => { if (ev.target === modal) S.closeModal("locker-modal"); });
+    document.addEventListener("click", (ev) => {
+      if (ev.target.closest && ev.target.closest(".locker-open-btn")) { S.closeModal("result-modal"); openLocker(); }
+    });
+    const row = document.querySelector(".controls-row");
+    if (!row || document.getElementById("locker-btn")) return;
+    const btn = document.createElement("button");
+    btn.id = "locker-btn";
+    btn.type = "button";
+    btn.className = "icon-btn labeled-btn";
+    btn.title = "Locker";
+    btn.setAttribute("aria-label", "Skins and effects");
+    btn.innerHTML = '<span class="btn-icon" aria-hidden="true">&#127912;</span><span class="btn-label">Locker</span>';
+    btn.addEventListener("click", openLocker);
+    const pb = document.getElementById("print-btn");
+    if (pb && pb.parentNode === row) row.insertBefore(btn, pb);
     else row.appendChild(btn);
   })();
 
