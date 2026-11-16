@@ -32,6 +32,52 @@
   let revealArmed = false;
   let archiveCtrl = null;
 
+  // ---------- Quackers, the mascot ----------
+  const mascotEl = document.getElementById("jb-mascot");
+  const bubbleEl = document.getElementById("jb-bubble");
+  const LINES = {
+    hello: ["Quack! Let's find some words!", "Hi there! Ready to play?", "Ooh, good letters today!"],
+    happy: ["Nice one!", "Quack-tastic!", "Ooh, good word!", "You're on a roll!", "Ducky!"],
+    great: ["Ooh, a long one!", "Brainy bird!", "Now we're quacking!"],
+    big: ["WOW! The big one!", "THAT'S the six-letter word!", "Holy quack! You got it!"],
+    bonus: ["Bonus word! Fancy!", "Not on the board, but I'll allow it!", "Extra credit!"],
+    wrong: ["Hmm, I don't know that one…", "Not a word, I think!", "Quack? Try again!"],
+    again: ["You already found that one!", "Déjà vu! Got that already."],
+    short: ["Need at least 3 letters!"],
+    hint: ["Psst… look at the orange letter!", "Here's a little help!", "I peeked for you!"],
+    mix: ["Shuffle shuffle!", "Fresh eyes!", "Wheee!"],
+    done: ["You found them ALL! Quack quack!", "Genius goose! Er… duck!"],
+    reveal: ["Aw, next time! Here they are.", "Tough one! Here are the answers."],
+  };
+  let moodTimer = null;
+  let lastLine = "";
+  function pick(arr) {
+    let l = arr[Math.floor(Math.random() * arr.length)];
+    if (l === lastLine && arr.length > 1) l = arr[(arr.indexOf(l) + 1) % arr.length];
+    lastLine = l;
+    return l;
+  }
+  function react(mood, key, ms = 2600) {
+    if (!mascotEl) return;
+    mascotEl.className = `jb-mascot mood-${mood}`;
+    void mascotEl.offsetWidth;
+    mascotEl.classList.add("bump");
+    if (key && LINES[key]) {
+      bubbleEl.textContent = pick(LINES[key]);
+      bubbleEl.classList.remove("hidden");
+    }
+    clearTimeout(moodTimer);
+    if (ms) {
+      moodTimer = setTimeout(() => {
+        mascotEl.className = "jb-mascot mood-idle";
+        bubbleEl.classList.add("hidden");
+      }, ms);
+    }
+  }
+  if (mascotEl) {
+    mascotEl.addEventListener("click", () => react("happy", "hello"));
+  }
+
   // ---------- puzzle selection ----------
 
   function dayNumber(dateStr) {
@@ -225,6 +271,7 @@
   }
 
   function mix() {
+    react("happy", "mix", 1400);
     const word = currentWord();
     state.order = S.shuffle(state.order);
     picked = [];
@@ -249,16 +296,19 @@
     if (isOver()) return;
     const word = currentWord();
     if (word.length < 3) {
-      S.showToast("Words need at least 3 letters");
+      react("think", "short");
       flashGuess("shake");
       return;
     }
     const { words, bonus } = state.puzzle;
     if (state.found.includes(word) || state.bonus.includes(word)) {
-      S.showToast("Already found");
+      react("think", "again");
       flashGuess("shake");
     } else if (words.includes(word)) {
       state.found.push(word);
+      if (state.found.length === words.length) react("celebrate", "done", 0);
+      else if (word.length === 6) react("celebrate", "big", 3500);
+      else react("happy", word.length >= 5 ? "great" : "happy");
       S.showToast(word.length === 6 ? "The big one! +100 🦆" : `${word.length >= 5 ? "Great word!" : "Nice!"} +${wordPoints(word)}`);
       flashGuess("pop");
       clearGuess();
@@ -273,6 +323,7 @@
       return;
     } else if (bonus.includes(word)) {
       state.bonus.push(word);
+      react("happy", "bonus");
       S.showToast(`Bonus word: ${word.toUpperCase()} +${Math.round(wordPoints(word) / 2)}`);
       flashGuess("pop");
       clearGuess();
@@ -280,7 +331,7 @@
       render();
       return;
     } else {
-      S.showToast("Not in the word list");
+      react("sad", "wrong");
       flashGuess("shake");
     }
     clearGuess();
@@ -297,6 +348,7 @@
       return;
     }
     state.hinted[target] = (state.hinted[target] || 0) + 1;
+    react("think", "hint");
     state.hints++;
     persist();
     renderBoard();
@@ -316,6 +368,7 @@
       return;
     }
     state.revealed = true;
+    react("sad", "reveal", 0);
     picked = [];
     persist();
     render();
@@ -405,4 +458,8 @@
   } catch { /* ignore */ }
   if (startMode === "practice") startPractice(false);
   else startDaily();
+  setTimeout(() => {
+    if (isOver()) react(state.revealed ? "idle" : "celebrate", state.revealed ? null : "done", 3500);
+    else react("happy", "hello", 3500);
+  }, 600);
 })();

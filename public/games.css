@@ -3025,3 +3025,63 @@ body.game-jumbly .jumbly-progress { flex-wrap: nowrap; }
   body.game-jumbly .jb-guess-letter { font-size: 1.9rem; }
   body.game-jumbly .jb-controls .pill-btn, body.game-jumbly .jb-enter { padding: 0.5rem 0.8rem; font-size: 0.92rem; }
 }
+
+/* ---------- Jumbly mascot: Quackers (original character) ---------- */
+body.game-jumbly .jb-guess-row { position: relative; width: 100%; max-width: 34rem; display: flex; align-items: flex-end; gap: 0.5rem; }
+body.game-jumbly .jb-guess-row .jb-guess { flex: 1; }
+body.game-jumbly .jb-mascot { position: relative; width: 4.6rem; flex: 0 0 auto; cursor: pointer; z-index: 5; margin-bottom: -0.4rem; }
+body.game-jumbly .jb-mascot-svg { width: 100%; height: auto; display: block; overflow: visible; transform-origin: 50% 100%; animation: m-sway 4s ease-in-out infinite; }
+/* moods: show/hide face parts */
+.jb-mascot .m-eyes-happy, .jb-mascot .m-eyes-sad, .jb-mascot .m-beak-open, .jb-mascot .m-beak-o,
+.jb-mascot .m-brows, .jb-mascot .m-brows-up, .jb-mascot .m-sweat, .jb-mascot .m-sparkles { display: none; }
+.jb-mascot.mood-happy .m-eyes-normal, .jb-mascot.mood-celebrate .m-eyes-normal, .jb-mascot.mood-sad .m-eyes-normal { display: none; }
+.jb-mascot.mood-happy .m-eyes-happy, .jb-mascot.mood-celebrate .m-eyes-happy { display: inline; }
+.jb-mascot.mood-sad .m-eyes-sad { display: inline; }
+.jb-mascot.mood-happy .m-beak-closed, .jb-mascot.mood-celebrate .m-beak-closed,
+.jb-mascot.mood-sad .m-beak-closed, .jb-mascot.mood-think .m-beak-closed { display: none; }
+.jb-mascot.mood-happy .m-beak-open, .jb-mascot.mood-celebrate .m-beak-open { display: inline; }
+.jb-mascot.mood-sad .m-beak-o, .jb-mascot.mood-think .m-beak-o { display: inline; }
+.jb-mascot.mood-sad .m-brows, .jb-mascot.mood-sad .m-sweat { display: inline; }
+.jb-mascot.mood-think .m-brows-up, .jb-mascot.mood-celebrate .m-brows-up { display: inline; }
+.jb-mascot.mood-celebrate .m-sparkles { display: inline; animation: m-twinkle 0.6s ease-in-out infinite alternate; transform-origin: center; }
+/* movement */
+.jb-mascot .m-pupils { animation: m-look 7s ease-in-out infinite; }
+.jb-mascot .m-eyes-normal { transform-origin: 100px 65px; animation: m-blink 5s infinite; }
+.jb-mascot .m-tuft { transform-origin: 100px 22px; animation: m-tuft 3s ease-in-out infinite; }
+.jb-mascot .m-wing-r { transform-origin: 145px 145px; }
+.jb-mascot.bump.mood-happy .jb-mascot-svg { animation: m-hop 0.5s ease 2; }
+.jb-mascot.bump.mood-celebrate .jb-mascot-svg { animation: m-jump 0.6s ease 4; }
+.jb-mascot.mood-celebrate .m-wing-r, .jb-mascot.mood-happy .m-wing-r { animation: m-wave 0.35s ease-in-out 6 alternate; }
+.jb-mascot.bump.mood-sad .jb-mascot-svg { animation: m-droop 0.6s ease forwards; }
+.jb-mascot.mood-think .jb-mascot-svg { animation: m-tilt 0.5s ease forwards; }
+@keyframes m-sway { 0%, 100% { transform: rotate(-2deg); } 50% { transform: rotate(2deg); } }
+@keyframes m-blink { 0%, 94%, 100% { transform: scaleY(1); } 96% { transform: scaleY(0.1); } }
+@keyframes m-look { 0%, 40% { transform: translate(0, 0); } 50%, 60% { transform: translate(-3px, 0); } 70%, 80% { transform: translate(3px, 1px); } 90%, 100% { transform: translate(0, 0); } }
+@keyframes m-tuft { 0%, 100% { transform: rotate(-6deg); } 50% { transform: rotate(6deg); } }
+@keyframes m-hop { 50% { transform: translateY(-12%) rotate(-4deg); } }
+@keyframes m-jump { 0%, 100% { transform: translateY(0) scale(1); } 40% { transform: translateY(-22%) scale(1.05, 0.95); } 60% { transform: translateY(-22%) rotate(6deg); } }
+@keyframes m-wave { from { transform: rotate(0deg); } to { transform: rotate(-35deg); } }
+@keyframes m-droop { to { transform: translateY(4%) rotate(-6deg) scale(0.97); } }
+@keyframes m-tilt { to { transform: rotate(-9deg); } }
+@keyframes m-twinkle { from { opacity: 0.4; transform: scale(0.85); } to { opacity: 1; transform: scale(1.1); } }
+/* speech bubble */
+body.game-jumbly .jb-bubble {
+  position: absolute; left: 70%; bottom: 92%; width: max-content; max-width: 13rem;
+  background: #fff; color: #2b1d10; border: 3px solid #2b1d10; border-radius: 16px;
+  padding: 0.45rem 0.7rem; font-weight: 800; font-size: 0.95rem; line-height: 1.2;
+  box-shadow: 0 3px 0 rgba(0,0,0,0.2); z-index: 6; animation: m-pop 0.25s ease;
+}
+body.game-jumbly .jb-bubble::after {
+  content: ""; position: absolute; left: 14px; bottom: -11px; width: 16px; height: 16px;
+  background: #fff; border-right: 3px solid #2b1d10; border-bottom: 3px solid #2b1d10; transform: rotate(45deg);
+}
+body.game-jumbly .jb-bubble.hidden { display: none; }
+@keyframes m-pop { from { transform: scale(0.6); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+/* desktop: big mascot in the bottom-left corner of the screen */
+@media (min-width: 900px) {
+  body.game-jumbly .jb-mascot { position: fixed; left: 1.5rem; bottom: 1rem; width: 11rem; margin: 0; }
+  body.game-jumbly .jb-bubble { left: 75%; bottom: 88%; font-size: 1.1rem; max-width: 16rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .jb-mascot *, .jb-mascot .jb-mascot-svg { animation: none !important; }
+}
