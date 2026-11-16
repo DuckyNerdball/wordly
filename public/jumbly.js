@@ -50,6 +50,7 @@
     reveal: ["Aw, next time! Here they are.", "Tough one! Here are the answers."],
   };
   let moodTimer = null;
+  let talkTimer = null;
   let lastLine = "";
   function pick(arr) {
     let l = arr[Math.floor(Math.random() * arr.length)];
@@ -63,8 +64,13 @@
     void mascotEl.offsetWidth;
     mascotEl.classList.add("bump");
     if (key && LINES[key]) {
-      bubbleEl.textContent = pick(LINES[key]);
+      const line = pick(LINES[key]);
+      bubbleEl.textContent = line;
       bubbleEl.classList.remove("hidden");
+      // flap the beak while he "says" the line
+      mascotEl.classList.add("talking");
+      clearTimeout(talkTimer);
+      talkTimer = setTimeout(() => mascotEl.classList.remove("talking"), Math.min(2200, 450 + line.length * 45));
     }
     clearTimeout(moodTimer);
     if (ms) {

@@ -3085,6 +3085,15 @@ body.game-jumbly .jb-bubble.hidden { display: none; }
 @media (prefers-reduced-motion: reduce) {
   .jb-mascot *, .jb-mascot .jb-mascot-svg { animation: none !important; }
 }
-/* Quackers keeps his little closed smile in every mood */
-.jb-mascot .m-beak-open, .jb-mascot .m-beak-o { display: none !important; }
-.jb-mascot .m-beak-closed { display: inline !important; }
+/* Quackers' beak: same shape as his idle smile, the lower half drops open when he talks */
+.jb-mascot.mood-happy .m-beak-closed, .jb-mascot.mood-celebrate .m-beak-closed,
+.jb-mascot.mood-sad .m-beak-closed, .jb-mascot.mood-think .m-beak-closed { display: inline; }
+.jb-mascot.talking.mood-happy .m-beak-open, .jb-mascot.talking.mood-celebrate .m-beak-open { animation: m-talk-open 0.32s steps(1) infinite; }
+.jb-mascot.talking.mood-happy .m-beak-closed, .jb-mascot.talking.mood-celebrate .m-beak-closed,
+.jb-mascot.talking.mood-sad .m-beak-closed, .jb-mascot.talking.mood-think .m-beak-closed,
+.jb-mascot.talking.mood-idle .m-beak-closed { animation: m-talk-closed 0.32s steps(1) infinite; }
+.jb-mascot.talking.mood-sad .m-beak-o, .jb-mascot.talking.mood-think .m-beak-o { animation: m-talk-open 0.32s steps(1) infinite; }
+.jb-mascot.talking.mood-idle .m-beak-o { display: inline; animation: m-talk-open 0.32s steps(1) infinite; }
+.jb-mascot:not(.talking) .m-beak-open, .jb-mascot:not(.talking) .m-beak-o { display: none; }
+@keyframes m-talk-open { 0% { opacity: 1; } 50% { opacity: 0; } }
+@keyframes m-talk-closed { 0% { opacity: 0; } 50% { opacity: 1; } }
