@@ -3085,3 +3085,6 @@ body.game-jumbly .jb-bubble.hidden { display: none; }
 @media (prefers-reduced-motion: reduce) {
   .jb-mascot *, .jb-mascot .jb-mascot-svg { animation: none !important; }
 }
+/* Quackers keeps his little closed smile in every mood */
+.jb-mascot .m-beak-open, .jb-mascot .m-beak-o { display: none !important; }
+.jb-mascot .m-beak-closed { display: inline !important; }
