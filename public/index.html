@@ -11,8 +11,8 @@
 <link rel="icon" type="image/png" href="icon.png">
 <link rel="apple-touch-icon" href="icon.png">
 <link rel="manifest" href="manifest.json">
-<link rel="stylesheet" href="style.css?v=19">
-<link rel="stylesheet" href="games.css?v=19">
+<link rel="stylesheet" href="style.css?v=20">
+<link rel="stylesheet" href="games.css?v=20">
 </head>
 <body class="game-menu">
 <div id="toast-container" class="toast-container" aria-live="polite"></div>
@@ -76,6 +76,30 @@
       </span>
     </a>
 
+    <a class="game-card" href="/pond">
+      <span class="game-icon icon-pond" aria-hidden="true">
+        <svg viewBox="0 0 100 100">
+          <rect x="6" y="6" width="88" height="88" rx="10" fill="#6b4524"></rect>
+          <rect x="12" y="12" width="24" height="24" rx="4" fill="#f6d58a"></rect>
+          <rect x="38" y="12" width="24" height="24" rx="4" fill="#e8641c"></rect>
+          <rect x="64" y="12" width="24" height="24" rx="4" fill="#f4ead2"></rect>
+          <rect x="12" y="38" width="24" height="24" rx="4" fill="#f4ead2"></rect>
+          <rect x="38" y="38" width="24" height="24" rx="4" fill="#f6d58a"></rect>
+          <rect x="64" y="38" width="24" height="24" rx="4" fill="#8fd0f0"></rect>
+          <rect x="12" y="64" width="24" height="24" rx="4" fill="#3a9d4f"></rect>
+          <rect x="38" y="64" width="24" height="24" rx="4" fill="#f6d58a"></rect>
+          <rect x="64" y="64" width="24" height="24" rx="4" fill="#f4ead2"></rect>
+          <text x="24" y="31" text-anchor="middle" font-size="17" font-weight="900" fill="#2b1d10" font-family="Arial, sans-serif">W</text>
+          <text x="50" y="57" text-anchor="middle" font-size="17" font-weight="900" fill="#2b1d10" font-family="Arial, sans-serif">O</text>
+          <text x="50" y="83" text-anchor="middle" font-size="17" font-weight="900" fill="#2b1d10" font-family="Arial, sans-serif">P</text>
+        </svg>
+      </span>
+      <span class="game-info">
+        <span class="game-name">Word Pond</span>
+        <span class="game-desc">Crossword-style word game against Quackers the duck.</span>
+        <span id="status-pond" class="game-status"></span>
+      </span>
+    </a>
     <a class="game-card" href="/jumbly">
       <span class="game-icon icon-jumbly" aria-hidden="true">
         <svg viewBox="0 0 100 100">
@@ -238,7 +262,7 @@
   <p class="menu-foot brand-foot">Brought to you by <a href="https://theduckynerdball.com" target="_blank" rel="noopener">The Ducky Nerdball</a> &#129414;</p>
 </main>
 
-<script src="common.js?v=19"></script>
+<script src="common.js?v=20"></script>
 <script>
 (() => {
   const S = Shared;
@@ -337,6 +361,13 @@
     wsSummary.length ? `Today: ${wsSummary.join(" · ")}` : "Today's word search is waiting",
     wsSummary.length
   );
+
+  const wp = S.load("pond:game");
+  if (wp && wp.scores && !wp.over && wp.log && wp.log.length) {
+    set("status-pond", `Game in progress · you ${wp.scores.you}, Quackers ${wp.scores.ai}`, true);
+  } else {
+    set("status-pond", "Quackers is ready for a game");
+  }
 
   const jb = S.load(`jumbly:daily:${today}`);
   if (jb && jb.over) {
