@@ -483,6 +483,13 @@
 
   function tryCommitSelection(cells) {
     if (!cells || cells.length < 2 || !state || state.over) return false;
+    const ok = tryCommitSelectionInner(cells);
+    X.sfx(ok ? "good" : "bad");
+    if (ok) setTimeout(() => X.fxGood(cells.map((i) => els.board.querySelectorAll(".ws-cell")[i])), 30);
+    return ok;
+  }
+
+  function tryCommitSelectionInner(cells) {
     const { grid, targets } = state.puzzle;
     const forward = cells.map((i) => grid[i]).join("");
     const backward = forward.split("").reverse().join("");
@@ -505,6 +512,7 @@
     if (state.found.length === targets.length) {
       state.over = true;
       if (stopwatch) state.activeMs = stopwatch.stop();
+      X.recordWin({ id: `${state.diff}:${state.seed}`, clean: state.hints === 0, ms: state.activeMs || 0, units: targets.reduce((n, t) => n + t.word.length, 0), sizeKey: state.diff });
       render();
       persist();
       if (state.mode === "daily" && !state.submitted) submitScore();
@@ -529,6 +537,51 @@
     render();
     persist();
   }
+
+  // ---------- Extras: sound, Locker, Guided Look, newspaper print ----------
+  const X = window.Extras;
+  const DIR_NAMES = { "0,1": "left to right →", "0,-1": "right to left ←", "1,0": "downward ↓", "-1,0": "upward ↑", "1,1": "diagonally ↘", "-1,-1": "diagonally ↖", "1,-1": "diagonally ↙", "-1,1": "diagonally ↗" };
+  function describe(t, n) {
+    const r0 = Math.floor(t.cells[0] / n), c0 = t.cells[0] % n;
+    const r1 = Math.floor(t.cells[1] / n), c1 = t.cells[1] % n;
+    const v = r0 < n / 3 ? "top" : r0 >= (2 * n) / 3 ? "bottom" : "middle";
+    const h = c0 < n / 3 ? "left" : c0 >= (2 * n) / 3 ? "right" : "center";
+    return { area: v === "middle" && h === "center" ? "the center" : `the ${v}-${h}`, dir: DIR_NAMES[`${Math.sign(r1 - r0)},${Math.sign(c1 - c0)}`] || "" };
+  }
+  function openSearchGuide() {
+    if (!state || !state.puzzle || state.over) return;
+    const n = state.puzzle.size;
+    const left = state.puzzle.targets.filter((t) => !state.found.includes(t.word));
+    state.hints += 1;
+    persist();
+    // longer words are easier to spot, so they float to the top
+    const total = left.reduce((s, t) => s + t.word.length, 0) || 1;
+    const rows = left
+      .map((t) => {
+        const d = describe(t, n);
+        return { w: t.word, p: t.word.length / total, tag: `starts in ${d.area} of the grid` };
+      })
+      .sort((a, b) => b.p - a.p);
+    X.showGuide(
+      `Searchy · ${left.length} word${left.length === 1 ? "" : "s"} left`,
+      `${X.guideList(rows, { max: 12 })}
+       <p class="guide-note">Where each word you haven't found starts. Longer words are easier to spot, so they're listed first.</p>
+       <p class="guide-cost">Counts as one hint.</p>`
+    );
+    X.sfx("reveal");
+  }
+  function printSearch() {
+    if (!state || !state.puzzle) return;
+    const { size, grid, targets, title } = state.puzzle;
+    const solution = new Set(targets.flatMap((t) => t.cells));
+    const table = (mark) => `<div class="pn-center"><table class="pn-search">${Array.from({ length: size }, (_, r) => `<tr>${Array.from({ length: size }, (_, c) => { const i = r * size + c; return `<td class="${mark && solution.has(i) ? "hit" : ""}">${grid[i]}</td>`; }).join("")}</tr>`).join("")}</table></div>`;
+    const list = `<div class="pn-wordlist">${targets.map((t) => `<span>${S.escapeHtml(t.word)}</span>`).join("")}</div>`;
+    X.printPages([
+      { title: "WORD SEARCH", by: title || "", bodyHtml: `<p class="pn-howto">Find the hidden words. They run forwards, backwards, up, down and diagonally.</p>${table(false)}${list}`, tag: state.date ? X.dateTag(new Date(`${state.date}T12:00:00`)) : "" },
+      { title: "WORD SEARCH", by: "Answer", answer: true, bodyHtml: table(true) },
+    ]);
+  }
+  X.mount({ game: "searchy", name: "Searchy", guide: openSearchGuide, print: printSearch });
 
   // ---------- pointer drag & tap-start/tap-end interaction ----------
 

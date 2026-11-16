@@ -306,10 +306,13 @@
         state.hintLevel = 0;
       }
       S.showToast(match.spangram ? `SPANGRAM! 🌟 ${match.word}` : `${match.word}!`);
+      X.sfx("good");
+      setTimeout(() => X.fxGood(match.path.map((c) => els.board.querySelectorAll(".strands-cell")[c])), 30);
       if (state.found.length === state.puzzle.words.length) {
         state.over = true;
         if (stopwatch) state.activeMs = stopwatch.stop();
         els.timer.textContent = S.formatTimer(state.activeMs);
+        X.recordWin({ id: `${state.index}`, clean: state.hintsUsed === 0, ms: state.activeMs || 0, units: state.puzzle.grid.length, sizeKey: "board" });
         if (state.mode === "daily") submitResult();
         render();
         persist();
@@ -323,6 +326,7 @@
       void els.current.offsetWidth;
       els.current.classList.add("shake");
       S.showToast("Not a theme word", 950);
+      X.sfx("bad");
       render();
     }
   }
@@ -354,6 +358,32 @@
     render();
     persist();
   }
+
+  // ---------- Extras: sound, Locker, Guided Look ----------
+  const X = window.Extras;
+  function openStrandsGuide() {
+    if (!state || state.over) return;
+    const e = S.escapeHtml;
+    const left = state.puzzle.words.filter((w) => !state.found.includes(w.word));
+    const traced = state.trace.map((i) => state.puzzle.grid[i]).join("");
+    const matching = traced ? left.filter((w) => w.word.startsWith(traced)) : [];
+    state.hintsUsed++;
+    state.history.push("H");
+    persist();
+    const rows = left
+      .slice()
+      .sort((a, b) => a.word.length - b.word.length)
+      .map((w) => ({ w: w.word[0] + "·".repeat(w.word.length - 1), p: 1 / left.length, tag: `${w.word.length} letters${w.spangram ? " · spangram 🌟" : ""}` }));
+    X.showGuide(
+      `Strands · ${left.length} theme word${left.length === 1 ? "" : "s"} left`,
+      `${traced ? `<p class="guide-note">You're tracing <b>${e(traced)}</b>: ${matching.length ? `${matching.length} remaining theme word${matching.length === 1 ? " starts" : "s start"} that way. Keep going.` : "no remaining theme word starts like that. Try another path."}</p>` : ""}
+       ${X.guideList(rows, { have: (k) => k === 0, max: 12 })}
+       <p class="guide-note">First letter and length of every theme word you haven't found. The spangram touches two opposite sides of the board.</p>
+       <p class="guide-cost">Counts as one hint.</p>`
+    );
+    X.sfx("reveal");
+  }
+  X.mount({ game: "strands", name: "Strands", guide: openStrandsGuide });
 
   function cellAtPoint(clientX, clientY, forgiving = false) {
     const rect = els.board.getBoundingClientRect();
@@ -395,6 +425,7 @@
       // ignore
     }
 
+    X.sfx("tap");
     if (state.trace.length === 0) {
       state.trace = [idx];
     } else {
@@ -427,7 +458,9 @@
     if (!state.trace.includes(idx) && isAdjacent(last, idx)) {
       dragging.moved = true;
       state.trace.push(idx);
+      X.sfx("tap");
       render();
+      X.fxTap(els.board.querySelectorAll(".strands-cell")[idx]);
     }
   });
 

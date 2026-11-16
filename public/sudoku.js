@@ -261,6 +261,7 @@
   function finishPuzzle() {
     state.over = true;
     if (stopwatch) state.activeMs = stopwatch.stop();
+    X.recordWin({ id: `${state.diff}:${state.puzzleIdx}`, clean: state.hints === 0 && state.mistakes === 0, ms: state.activeMs || 0, units: state.givens.filter((g) => g === 0).length * 2, sizeKey: state.diff });
     render();
     persist();
     if (state.mode === "daily" && !state.submitted) submitResult();
@@ -278,6 +279,7 @@
       if (state.values[idx] !== 0) return;
       pushUndo();
       state.notes[idx] ^= 1 << d;
+      X.sfx("tap");
       render();
       persist();
       return;
@@ -292,7 +294,26 @@
       state.notes[idx] = 0;
       if (d !== state.solution[idx]) {
         state.mistakes += 1;
+        X.sfx("bad");
       } else {
+        X.sfx("tap");
+        setTimeout(() => {
+          const cellEls = els.board.querySelectorAll(".sudoku-cell");
+          X.fxTap(cellEls[idx]);
+          // a finished row, column or box gets the "something is right" effect
+          const r = Math.floor(idx / 9), c = idx % 9, b0 = Math.floor(r / 3) * 27 + Math.floor(c / 3) * 3;
+          const units = [
+            Array.from({ length: 9 }, (_, k) => r * 9 + k),
+            Array.from({ length: 9 }, (_, k) => k * 9 + c),
+            Array.from({ length: 9 }, (_, k) => b0 + Math.floor(k / 3) * 9 + (k % 3)),
+          ];
+          units.forEach((u) => {
+            if (u.every((i) => state.values[i] === state.solution[i])) {
+              X.sfx("good");
+              X.fxGood(u.map((i) => cellEls[i]));
+            }
+          });
+        }, 0);
         // Clear matching pencil marks in peer cells
         const bit = ~(1 << d);
         for (let j = 0; j < 81; j++) {
@@ -319,6 +340,7 @@
     pushUndo();
     state.values[idx] = 0;
     state.notes[idx] = 0;
+    X.sfx("erase");
     render();
     persist();
   }
@@ -331,6 +353,68 @@
     render();
     persist();
   }
+
+  // ---------- Extras: sound, Locker, Guided Look, newspaper print ----------
+  const X = window.Extras;
+  function candidatesAt(i, values) {
+    if (values[i]) return [];
+    const used = new Set();
+    for (let j = 0; j < 81; j++) if (j !== i && values[j] && arePeers(i, j)) used.add(values[j]);
+    return [1, 2, 3, 4, 5, 6, 7, 8, 9].filter((d) => !used.has(d));
+  }
+  // a cell that logic can fill right now: one candidate left, or the only spot for a digit in a row/col/box
+  function nextLogicalMove(values) {
+    for (let i = 0; i < 81; i++) {
+      const c = candidatesAt(i, values);
+      if (!values[i] && c.length === 1) return { i, d: c[0], why: "it's the only number that fits that square" };
+    }
+    const unitsOf = [];
+    for (let r = 0; r < 9; r++) unitsOf.push({ name: `row ${r + 1}`, cells: Array.from({ length: 9 }, (_, k) => r * 9 + k) });
+    for (let c = 0; c < 9; c++) unitsOf.push({ name: `column ${c + 1}`, cells: Array.from({ length: 9 }, (_, k) => k * 9 + c) });
+    for (let b = 0; b < 9; b++) {
+      const b0 = Math.floor(b / 3) * 27 + (b % 3) * 3;
+      unitsOf.push({ name: `box ${b + 1}`, cells: Array.from({ length: 9 }, (_, k) => b0 + Math.floor(k / 3) * 9 + (k % 3)) });
+    }
+    for (const u of unitsOf) {
+      for (let d = 1; d <= 9; d++) {
+        if (u.cells.some((i) => values[i] === d)) continue;
+        const spots = u.cells.filter((i) => !values[i] && candidatesAt(i, values).includes(d));
+        if (spots.length === 1) return { i: spots[0], d, why: `it's the only place a ${d} can go in ${u.name}` };
+      }
+    }
+    return null;
+  }
+  const cellName = (i) => `row ${Math.floor(i / 9) + 1}, column ${(i % 9) + 1}`;
+  function openSudokuGuide() {
+    if (!state || state.over) return;
+    const wrong = state.values.map((v, i) => (v && v !== state.solution[i] ? i : -1)).filter((i) => i >= 0);
+    const sel = state.selected;
+    const cands = sel !== null ? candidatesAt(sel, state.values) : [];
+    const move = nextLogicalMove(state.values);
+    state.hints += 1;
+    persist();
+    const candHtml = sel !== null && !state.values[sel]
+      ? `<p class="guide-note"><b>Selected square (${cellName(sel)}):</b> ${cands.length ? `${cands.length} number${cands.length === 1 ? "" : "s"} can go here` : "nothing fits here, so an earlier entry is wrong"}.</p>${cands.length ? X.guideList(cands.map((d) => ({ w: String(d), p: 1 / cands.length })), { max: 9 }) : ""}`
+      : `<p class="guide-note">Select an empty square to see what can go there.</p>`;
+    X.showGuide(
+      `Sudoku · ${state.diff}`,
+      `${candHtml}
+       <p class="guide-note"><b>Next logical step:</b> ${move ? `look at ${cellName(move.i)}: ${move.why}, so it's a <b>${move.d}</b>.` : "no single-step deduction left; you'll need pencil marks and pairs."}</p>
+       ${wrong.length ? `<p class="guide-note">&#9888;&#65039; ${wrong.length} square${wrong.length === 1 ? " is" : "s are"} filled in wrong, so the logic above may be off.</p>` : ""}
+       <p class="guide-cost">Counts as one hint.</p>`
+    );
+    X.sfx("reveal");
+  }
+  function printSudoku() {
+    if (!state) return;
+    const grid = (vals) => `<div class="pn-center"><table class="pn-sudoku">${Array.from({ length: 9 }, (_, r) => `<tr>${Array.from({ length: 9 }, (_, c) => `<td>${vals[r * 9 + c] || ""}</td>`).join("")}</tr>`).join("")}</table></div>`;
+    const label = `${state.diff[0].toUpperCase()}${state.diff.slice(1)}`;
+    X.printPages([
+      { title: "SUDOKU", by: `Difficulty: ${label}`, bodyHtml: `<p class="pn-howto">Fill the grid so every row, column and 3×3 box contains the digits 1 through 9.</p>${grid(state.givens)}`, tag: state.date ? X.dateTag(new Date(`${state.date}T12:00:00`)) : "" },
+      { title: "SUDOKU", by: "Answer", answer: true, bodyHtml: grid(state.solution) },
+    ]);
+  }
+  X.mount({ game: "sudoku", name: "Sudoku", guide: openSudokuGuide, print: printSudoku });
 
   function revealHint() {
     if (!state || state.over || state.selected === null) return;

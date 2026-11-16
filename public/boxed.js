@@ -341,6 +341,7 @@
 
   function nudge(message) {
     if (message) S.showToast(message);
+    X.sfx("bad");
     els.current.classList.add("shake");
     setTimeout(() => els.current.classList.remove("shake"), 400);
   }
@@ -358,6 +359,7 @@
     if (state.current.length >= 20) return false;
     ensureStarted();
     state.current += letter;
+    X.sfx("tap");
     render();
     persist();
     return true;
@@ -365,6 +367,7 @@
 
   function deleteLetter() {
     if (state.solved) return;
+    X.sfx("erase");
     if (state.current.length > 1) {
       state.current = state.current.slice(0, -1);
     } else if (state.words.length) {
@@ -394,6 +397,8 @@
 
     state.words.push(word);
     state.current = word.slice(-1);
+    X.sfx("good");
+    X.fxGood([els.current]);
     if (usedLetters().size === 12) {
       state.solved = true;
       state.current = "";
@@ -403,10 +408,57 @@
     render();
     persist();
     if (state.solved) {
+      X.recordWin({ id: state.seed, clean: guidedSeed !== state.seed, ms: state.activeMs || 0, units: state.words.join("").length, sizeKey: "box" });
       if (state.mode === "daily") submitResult();
       setTimeout(showResult, 500);
     }
   }
+
+  // ---------- Extras: sound, Locker, Guided Look ----------
+  const X = window.Extras;
+  let guidedSeed = null;
+  async function openBoxedGuide() {
+    if (!state || !state.puzzle || state.solved) return;
+    X.showGuide("Letter Boxed", `<p class="guide-note">Working it out…</p>`);
+    let words;
+    try {
+      words = await X.loadWords();
+    } catch (err) {
+      X.showGuide("Guided Look", `<p class="guide-note">${S.escapeHtml(err.message)}</p>`);
+      return;
+    }
+    guidedSeed = state.seed;
+    const used = usedLetters();
+    const prefix = state.current || "";
+    const valid = Array.from(validSet(state.puzzle)).filter((w) => !prefix || w.startsWith(prefix));
+    const fresh = (w) => new Set([...w].filter((ch) => !used.has(ch))).size;
+    const remaining = 12 - used.size;
+    const scored = valid.map((w) => {
+      const n = fresh(w);
+      return [w.toUpperCase(), (words.z.get(w.toUpperCase()) || 2) + n * 0.6, 1, n];
+    });
+    const ranked = X.rank(scored).map((r) => ({ ...r, tag: `${scored.find((x) => x[0] === r.w)[3]} new letter${scored.find((x) => x[0] === r.w)[3] === 1 ? "" : "s"}` }));
+    // can it be finished in one or two more words from here?
+    const all = Array.from(validSet(state.puzzle));
+    const covers = (ws) => { const u = new Set(used); ws.join("").split("").forEach((c) => u.add(c)); return u.size === 12; };
+    let finish = valid.find((w) => covers([w]));
+    let finishMsg = finish ? `You can finish in <b>one</b> more word from here.` : "";
+    if (!finish) {
+      outer: for (const w1 of valid.slice(0, 600)) {
+        for (const w2 of all) if (w2[0] === w1[w1.length - 1] && covers([w1, w2])) { finishMsg = `A <b>two-word</b> finish exists from here (first word starts ${S.escapeHtml(w1.slice(0, Math.max(2, prefix.length + 1)).toUpperCase())}…).`; break outer; }
+      }
+    }
+    const show = Math.max(2, prefix.length + 1);
+    X.showGuide(
+      `Letter Boxed · ${remaining} letter${remaining === 1 ? "" : "s"} still unused`,
+      `${ranked.length ? X.guideList(ranked.map((r) => ({ ...r, w: r.w.slice(0, show) + "·".repeat(Math.max(0, r.w.length - show)) })), { have: (k) => k < show }) : `<p class="guide-note">No valid word starts with ${S.escapeHtml(prefix.toUpperCase())}. Delete back a letter or two.</p>`}
+       <p class="guide-note">${ranked.length.toLocaleString()} word${ranked.length === 1 ? "" : "s"} start${ranked.length === 1 ? "s" : ""} ${prefix ? `with ${S.escapeHtml(prefix.toUpperCase())}` : "anywhere"}. Ranked by how many unused letters they cover, then how common they are.</p>
+       ${finishMsg ? `<p class="guide-note">${finishMsg}</p>` : ""}
+       <p class="guide-cost">Using Guided Look means this solve won't count as a no-hint win in the Locker.</p>`
+    );
+    X.sfx("reveal");
+  }
+  X.mount({ game: "boxed", name: "Letter Boxed", guide: openBoxedGuide });
 
   // ---------- tap + drag selection ----------
   // Press a letter to add it, then keep your finger / mouse button down and

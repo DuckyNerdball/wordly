@@ -3362,3 +3362,44 @@ body[class*="cw-skin-"]:not(.cw-skin-classic) .cw-letter { font-weight: var(--sk
 .guide-note { font-size: 0.8rem; opacity: 0.85; text-align: center; }
 .guide-cost { font-size: 0.72rem; opacity: 0.65; text-align: center; margin-top: 0.3rem; }
 .guide-tag { grid-column: 1 / -1; font-size: 0.68rem; opacity: 0.75; margin-top: -0.25rem; }
+
+/* ===== Shared Locker skins for every non-Crossy game: a framed, tinted board + the skin's letter font.
+   Uses rings (box-shadow) so no game's layout or sizing changes, and leaves game-state colours alone. ===== */
+.dx-skin-mosaic, .cw-swatch-mosaic { --sk-line:#2b2d42; --sk-frame:#ef476f; --sk-cell:#fff7e6; --sk-ink:#2b2d42; --sk-block:conic-gradient(#ef476f 0 25%,#ffd166 0 50%,#06d6a0 0 75%,#118ab2 0); --sk-word:#ffe8b3; --sk-active:#ffd166; --sk-solved:#d8f3dc; --sk-font: "Trebuchet MS", "Segoe UI", sans-serif; }
+body[class*="dx-skin-"]:not(.dx-skin-classic) :is(#board, .hive, #box, #conn-board, #strands-board, #sudoku-board, #tiles-board, #ws-board, #jb-board, #wp-board) {
+  border-radius: 12px;
+  background-color: color-mix(in srgb, var(--sk-cell) 30%, transparent);
+  box-shadow: 0 0 0 6px color-mix(in srgb, var(--sk-cell) 70%, transparent), 0 0 0 9px var(--sk-frame), 0 10px 26px rgba(0, 0, 0, 0.3);
+  font-family: var(--sk-font, inherit);
+}
+body[class*="dx-skin-"]:not(.dx-skin-classic) :is(#board .tile, .hive-cell, .box-letter, .conn-tile, .strands-cell, .sudoku-cell, .tiles-cell, .ws-cell, .jb-letter, .wp-tile) { font-family: var(--sk-font, inherit); }
+.dx-skin-neon :is(#board, .hive, #box, #conn-board, #strands-board, #sudoku-board, #tiles-board, #ws-board, #jb-board, #wp-board) { box-shadow: 0 0 0 6px #120a24, 0 0 0 9px #ff2bd6, 0 0 22px rgba(0, 240, 255, 0.55); }
+.dx-skin-arcade :is(#board, .hive, #box, #conn-board, #strands-board, #sudoku-board, #tiles-board, #ws-board, #jb-board, #wp-board) { box-shadow: 0 0 0 6px #000, 0 0 0 9px #00ff66, 0 0 20px rgba(0, 255, 102, 0.5); }
+.dx-skin-gilded :is(#board, .hive, #box, #conn-board, #strands-board, #sudoku-board, #tiles-board, #ws-board, #jb-board, #wp-board) { box-shadow: 0 0 0 6px #fff8e1, 0 0 0 10px #d4af37, 0 0 0 12px #8a6a1f, 0 10px 26px rgba(0, 0, 0, 0.3); }
+.dx-skin-aurora :is(#board, .hive, #box, #conn-board, #strands-board, #sudoku-board, #tiles-board, #ws-board, #jb-board, #wp-board) { animation: cw-aurora 8s ease-in-out infinite alternate; }
+.dx-skin-mosaic :is(#board, .hive, #box, #conn-board, #strands-board, #sudoku-board, #tiles-board, #ws-board, #jb-board, #wp-board) { box-shadow: 0 0 0 6px #fff7e6, 0 0 0 9px #ef476f, 0 0 0 12px #ffd166, 0 0 0 15px #06d6a0; }
+
+.dx-unlock-chip { position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%); z-index: 10000; border: none; border-radius: 999px; padding: 0.6rem 1.1rem; font: 700 0.95rem/1 inherit; background: var(--color-correct); color: var(--key-text-on-color, #fff); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35); cursor: pointer; animation: dx-chip 0.5s cubic-bezier(.2, .9, .3, 1.3); }
+@keyframes dx-chip { from { transform: translate(-50%, 80px); opacity: 0; } to { transform: translate(-50%, 0); opacity: 1; } }
+@media print { .pn-foot { text-align: right; margin-top: 0.1in; } .pn-body { margin-top: 0.12in; } .pn-center { display: flex; justify-content: center; } }
+.guide-starts { display: flex; flex-wrap: wrap; gap: 0.3rem 0.6rem; justify-content: center; font-size: 0.8rem; margin: 0.4rem 0; }
+.guide-starts b { letter-spacing: 0.05em; }
+@media print {
+  .pn-howto { font-family: Georgia, "Times New Roman", serif; font-style: italic; font-size: 11pt; margin: 0.06in 0 0.16in; }
+  .pn-sudoku { border-collapse: collapse; border: 3pt solid #000; }
+  .pn-sudoku td { width: 0.62in; height: 0.62in; border: 0.75pt solid #000; text-align: center; vertical-align: middle; font: 700 24pt/1 Helvetica, Arial, sans-serif; }
+  .pn-sudoku tr:nth-child(3n) td { border-bottom: 2.5pt solid #000; }
+  .pn-sudoku td:nth-child(3n) { border-right: 2.5pt solid #000; }
+  .pn-answers .pn-sudoku td { width: 0.42in; height: 0.42in; font-size: 15pt; }
+  .pn-search { border-collapse: collapse; border: 2.5pt solid #000; }
+  .pn-search td { width: 0.38in; height: 0.38in; text-align: center; vertical-align: middle; font: 700 15pt/1 "Courier New", Courier, monospace; }
+  .pn-search td.hit { border: 1.5pt solid #000; border-radius: 50%; background: #e6e6e6; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .pn-wordlist { columns: 4; column-gap: 0.2in; margin-top: 0.2in; font: 700 11pt/1.5 Helvetica, Arial, sans-serif; text-transform: uppercase; }
+  .pn-wordlist span { display: block; }
+  .pn-tiles { gap: 0.12in; margin: 0.15in 0 0.25in; }
+  .pn-tile { display: inline-flex; width: 0.62in; height: 0.62in; align-items: center; justify-content: center; border: 2pt solid #000; border-radius: 6px; font: 900 26pt/1 Georgia, serif; }
+  .pn-jumbly { columns: 2; column-gap: 0.4in; font: 11pt/1.6 Helvetica, Arial, sans-serif; }
+  .pn-jgroup { break-inside: avoid; margin-bottom: 0.12in; }
+  .pn-jgroup b { display: block; font-size: 10pt; text-transform: uppercase; letter-spacing: 0.04em; border-bottom: 1pt solid #000; margin-bottom: 0.04in; }
+  .pn-blank { display: inline-block; margin: 0 0.16in 0.04in 0; font-size: 15pt; letter-spacing: 0.06em; }
+}

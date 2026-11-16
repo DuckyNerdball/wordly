@@ -108,6 +108,7 @@
   }
 
   function beginRound({ mode, date, index, saved }) {
+    guidedUsed = false;
     const groups = puzzleAt(index);
     const all = groups.flatMap((g) => g.words);
     const solved = (saved.solved || []).filter((t) => t >= 0 && t < 4);
@@ -243,7 +244,9 @@
     else if (state.selected.length < 4) state.selected.push(word);
     else return;
     ensureStarted();
+    X.sfx(i >= 0 ? "erase" : "tap");
     render();
+    if (i < 0) X.fxTap(els.board.querySelector(`.conn-tile[data-word="${CSS.escape(word)}"]`));
     persist();
   }
 
@@ -277,12 +280,15 @@
       state.selected = [];
       if (state.solved.length === 4) finish(true);
       render(tier);
+      X.sfx("good");
+      X.fxGood(els.board.querySelectorAll(".conn-group:last-of-type, .conn-group.pop"));
       persist();
       if (state.over) setTimeout(showResult, 900);
       return;
     }
 
     state.mistakes++;
+    X.sfx("bad");
     if (counts.includes(3)) S.showToast("One away…");
     shakeSelected();
     if (state.mistakes >= MAX_MISTAKES) {
@@ -308,8 +314,43 @@
     state.selected = [];
     state.activeMs = stopwatch.stop();
     els.timer.textContent = S.formatTimer(state.activeMs);
+    if (won) X.recordWin({ id: `${state.index}`, clean: state.mistakes === 0 && !guidedUsed, ms: state.activeMs || 0, units: 16, sizeKey: "4x4" });
+    else X.sfx("lose");
     if (state.mode === "daily") submitResult();
   }
+
+  // ---------- Extras: sound, Locker, Guided Look ----------
+  const X = window.Extras;
+  let guidedUsed = false;
+  function openConnGuide() {
+    if (!state || !state.groups || state.over) return;
+    guidedUsed = true;
+    const e = S.escapeHtml;
+    const unsolved = [0, 1, 2, 3].filter((t) => !state.solved.includes(t));
+    const sel = state.selected;
+    let selMsg = "Select some words and open this again to check them.";
+    if (sel.length >= 2) {
+      const counts = {};
+      sel.forEach((w) => (counts[tierOf(w)] = (counts[tierOf(w)] || 0) + 1));
+      const best = Math.max(...Object.values(counts));
+      selMsg = best === sel.length
+        ? `All ${sel.length} of your selected words belong to the same group.${sel.length < 4 ? ` You need ${4 - sel.length} more.` : ""}`
+        : `Only ${best} of your ${sel.length} selected words share a group.`;
+    }
+    const easiest = unsolved[0];
+    const g = state.groups[easiest];
+    const pick = g.words.find((w) => !sel.includes(w)) || g.words[0];
+    const tierName = ["yellow (easiest)", "green", "blue", "purple (trickiest)"][easiest] || "next";
+    X.showGuide(
+      `Connections · ${unsolved.length} group${unsolved.length === 1 ? "" : "s"} left · ${MAX_MISTAKES - state.mistakes} mistake${MAX_MISTAKES - state.mistakes === 1 ? "" : "s"} left`,
+      `<p class="guide-note"><b>Your selection:</b> ${e(selMsg)}</p>
+       <p class="guide-note"><b>Anchor word:</b> ${e(pick)} is in the ${tierName} group. Its category name is ${g.name ? g.name.replace(/[^A-Za-z]/g, "").length : "?"} letters long.</p>
+       <p class="guide-note">Every word still on the board belongs to one of the ${unsolved.length} remaining groups, four words each.</p>
+       <p class="guide-cost">Using Guided Look means this win won't count as a no-hint win in the Locker.</p>`
+    );
+    X.sfx("reveal");
+  }
+  X.mount({ game: "connections", name: "Connections", guide: openConnGuide });
 
   els.board.addEventListener("click", (e) => {
     const tile = e.target.closest(".conn-tile");

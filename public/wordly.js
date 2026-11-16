@@ -208,6 +208,7 @@
   }
 
   function startGame(mode, length, dateStr) {
+    guidedUsed = false;
     if (mode === "daily") startDaily(length, dateStr);
     else startPractice(length);
   }
@@ -461,17 +462,20 @@
     if (guess.length !== state.length) {
       shakeCurrentRow();
       showToast("Not enough letters");
+      X.sfx("bad");
       return;
     }
     if (!state.guessSet.has(guess)) {
       shakeCurrentRow();
       showToast("Not in word list");
+      X.sfx("bad");
       return;
     }
     const hardErr = checkHardModeViolation(guess);
     if (hardErr) {
       shakeCurrentRow();
       showToast(hardErr);
+      X.sfx("bad");
       return;
     }
 
@@ -495,6 +499,15 @@
         persistDailyProgress();
         const row = boardEl.querySelector(`[data-row="${rowIndex}"]`);
         if (row) row.classList.add("win");
+        if (row) X.fxGood(row.querySelectorAll(".tile"));
+        const elapsed = state.startedAt ? (state.completedAt || Date.now()) - state.startedAt : 0;
+        X.recordWin({
+          id: state.mode === "daily" ? `${state.date}:${state.length}` : `practice:${state.answer}`,
+          clean: !guidedUsed,
+          ms: elapsed,
+          units: state.length * 8,
+          sizeKey: String(state.length),
+        });
         setTimeout(() => showResult(true), 400);
         return;
       }
@@ -507,10 +520,12 @@
           stopLiveTimer();
         }
         persistDailyProgress();
+        X.sfx("lose");
         setTimeout(() => showResult(false), 200);
         return;
       }
 
+      X.sfx("reveal");
       persistDailyProgress();
     });
   }
@@ -640,6 +655,7 @@
     if (key === "enter") {
       submitGuess();
     } else if (key === "back") {
+      if (state.current) X.sfx("erase");
       state.current = state.current.slice(0, -1);
       renderBoard();
     } else if (/^[a-z]$/.test(key) && state.current.length < state.length) {
@@ -649,6 +665,8 @@
       if (row) {
         const tiles = row.querySelectorAll(".tile");
         const last = tiles[state.current.length - 1];
+        X.sfx("tap");
+        X.fxTap(last);
         if (last) {
           last.classList.add("pop");
           setTimeout(() => last.classList.remove("pop"), 100);
@@ -835,6 +853,72 @@
       loadLeaderboard(activeLbLen);
     });
   });
+
+  // ---- Extras: sound, Locker, Guided Look ----
+  const X = window.Extras;
+  let guidedUsed = false;
+  function remainingAnswers() {
+    let candidates = ANSWERS[state.length] || [];
+    for (const g of state.guesses) {
+      const observed = getPattern(g, state.answer);
+      candidates = candidates.filter((word) => getPattern(g, word).every((st, i) => st === observed[i]));
+    }
+    return candidates;
+  }
+  // a guess that splits the remaining answers into the most groups (more groups = more information)
+  function bestNextGuess(cands) {
+    if (cands.length <= 2) return null;
+    const pool = cands.length > 400 ? cands.slice(0, 400) : cands;
+    const tries = Array.from(new Set([...cands.slice(0, 150), ...(GUESSES[state.length] || []).filter((_, i) => i % 40 === 0)]));
+    let best = null;
+    for (const g of tries) {
+      const groups = new Map();
+      for (const w of pool) {
+        const k = getPattern(g, w).join("");
+        groups.set(k, (groups.get(k) || 0) + 1);
+      }
+      const worst = Math.max(...groups.values());
+      if (!best || groups.size > best.groups || (groups.size === best.groups && worst < best.worst)) best = { word: g, groups: groups.size, worst };
+    }
+    return best;
+  }
+  async function openWordlyGuide() {
+    if (!state || state.over) {
+      showToast("Start a game first");
+      return;
+    }
+    X.showGuide(`${state.length}-letter Wordly · guess ${state.guesses.length + 1} of ${state.maxGuesses}`, `<p class="guide-note">Working it out…</p>`);
+    let words;
+    try {
+      words = await X.loadWords();
+    } catch (err) {
+      X.showGuide("Guided Look", `<p class="guide-note">${escapeHtml(err.message)}</p>`);
+      return;
+    }
+    guidedUsed = true;
+    const cands = remainingAnswers();
+    const ranked = X.rank(cands.map((w) => [w.toUpperCase(), words.z.get(w.toUpperCase()) || 2.5]));
+    const known = Array(state.length).fill("");
+    state.guesses.forEach((g) => getPattern(g, state.answer).forEach((st, i) => { if (st === "correct") known[i] = g[i].toUpperCase(); }));
+    const odds = known.map((ch, k) => {
+      if (ch) return null;
+      const m = {};
+      ranked.forEach(({ w, p }) => (m[w[k]] = (m[w[k]] || 0) + p));
+      return Object.entries(m).sort((a, b) => b[1] - a[1]).slice(0, 3);
+    });
+    const next = state.guesses.length ? bestNextGuess(cands) : null;
+    X.showGuide(
+      `${state.length}-letter Wordly · guess ${state.guesses.length + 1} of ${state.maxGuesses}`,
+      `<div class="guide-pattern">${known.map((ch) => `<span class="guide-sq ${ch ? "have" : ""}">${ch}</span>`).join("")}</div>
+       <div class="guide-odds">${odds.map((o) => `<span class="guide-odd">${o ? o.map(([l, p]) => `<b>${l}</b>${X.pct(p)}`).join("<br>") : "&nbsp;"}</span>`).join("")}</div>
+       ${X.guideList(ranked, { have: (k) => !!known[k] })}
+       <p class="guide-note">${state.guesses.length ? `${cands.length.toLocaleString()} possible answer${cands.length === 1 ? "" : "s"} fit your clues so far.` : `Make a first guess and this narrows down fast. ${cands.length.toLocaleString()} answers are possible right now.`} Odds lean toward more common words.</p>
+       ${next ? `<p class="guide-note"><b>Smartest next guess: ${next.word.toUpperCase()}</b>. It splits what's left into ${next.groups} groups (worst case ${next.worst} left).</p>` : ""}
+       <p class="guide-cost">Using Guided Look means this win won't count as a no-hint win in the Locker.</p>`
+    );
+    X.sfx("reveal");
+  }
+  X.mount({ game: "wordly", name: "Wordly", guide: openWordlyGuide });
 
   // ---- Init ----
   function init() {

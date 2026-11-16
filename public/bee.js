@@ -370,6 +370,7 @@
   }
 
   function deleteLetter() {
+    if (state.current) X.sfx("erase");
     state.current = state.current.slice(0, -1);
     renderInput();
   }
@@ -385,6 +386,7 @@
 
   function reject(message) {
     S.showToast(message);
+    X.sfx("bad");
     els.input.classList.add("shake");
     setTimeout(() => {
       els.input.classList.remove("shake");
@@ -422,6 +424,8 @@
     renderRank();
     renderFound();
     els.input.classList.add("accepted");
+    X.sfx("good");
+    X.fxGood([els.input]);
     setTimeout(() => els.input.classList.remove("accepted"), 300);
 
     if (after >= GENIUS && state.geniusMs === null) {
@@ -431,6 +435,8 @@
     persist();
     scheduleSubmit(after !== before);
 
+    if (after >= GENIUS && before < GENIUS) beeWin("genius");
+    if (after === QUEEN) beeWin("queen");
     if (after === QUEEN) setTimeout(() => showResult("queen"), 600);
     else if (after >= GENIUS && before < GENIUS) setTimeout(() => showResult("genius"), 600);
   }
@@ -441,6 +447,8 @@
     cell.classList.add("pressed");
     setTimeout(() => cell.classList.remove("pressed"), 120);
     addLetter(cell.dataset.letter);
+    X.sfx("tap");
+    X.fxTap(cell);
   });
 
   document.getElementById("bee-delete").addEventListener("click", () => state.puzzle && deleteLetter());
@@ -461,6 +469,7 @@
       shuffleLetters();
     } else if (/^[a-zA-Z]$/.test(e.key)) {
       addLetter(e.key.toLowerCase());
+      X.sfx("tap");
     }
   });
 
@@ -471,6 +480,58 @@
     els.game.classList.toggle("found-open", willExpand);
     renderFound();
   });
+
+  // ---------- Extras: sound, Locker, Guided Look ----------
+  const X = window.Extras;
+  let guidedSeed = null;
+  function beeWin(kind) {
+    const lettersFound = state.found.reduce((n, w) => n + w.length, 0);
+    X.recordWin({
+      id: `${state.seed}:${kind}`,
+      clean: guidedSeed !== state.seed,
+      ms: kind === "genius" ? state.geniusMs || 0 : state.activeMs || 0,
+      units: lettersFound,
+      sizeKey: kind,
+    });
+  }
+  async function openBeeGuide() {
+    if (!state || !state.puzzle) return;
+    const p = state.puzzle;
+    X.showGuide("Spelly Bee", `<p class="guide-note">Working it out…</p>`);
+    let words;
+    try {
+      words = await X.loadWords();
+    } catch (err) {
+      X.showGuide("Guided Look", `<p class="guide-note">${S.escapeHtml(err.message)}</p>`);
+      return;
+    }
+    guidedSeed = state.seed;
+    const left = p.answers.filter((w) => !state.found.includes(w));
+    if (!left.length) {
+      X.showGuide("Spelly Bee", `<p class="guide-note">You've found every word. Nothing left to look for!</p>`);
+      return;
+    }
+    const typed = state.current || "";
+    const pool = typed ? left.filter((w) => w.startsWith(typed)) : left;
+    const ranked = X.rank((pool.length ? pool : left).map((w) => [w.toUpperCase(), words.z.get(w.toUpperCase()) || 2]));
+    // show the first two letters (or what you've typed + 1) and blanks for the rest
+    const show = Math.max(2, typed.length + 1);
+    const rows = ranked.map(({ w, p: pr }) => ({ w: w.slice(0, show) + "·".repeat(Math.max(0, w.length - show)), p: pr, tag: `${w.length} letters${isPangram(w.toLowerCase(), p) ? " · pangram!" : ""}` }));
+    const starts = {};
+    left.forEach((w) => (starts[w.slice(0, 2).toUpperCase()] = (starts[w.slice(0, 2).toUpperCase()] || 0) + 1));
+    const pangramsLeft = left.filter((w) => isPangram(w, p)).length;
+    X.showGuide(
+      `Spelly Bee · ${left.length} word${left.length === 1 ? "" : "s"} left`,
+      `${typed && !pool.length ? `<p class="guide-note">No remaining word starts with ${S.escapeHtml(typed.toUpperCase())}.</p>` : ""}
+       ${X.guideList(rows, { have: (k) => k < show })}
+       <p class="guide-note">Most findable first. Odds lean toward more common words${typed ? `, among words starting ${S.escapeHtml(typed.toUpperCase())}` : ""}.</p>
+       <div class="guide-starts">${Object.entries(starts).sort().map(([k, n]) => `<span><b>${k}</b>&times;${n}</span>`).join("")}</div>
+       <p class="guide-note">${pangramsLeft ? `${pangramsLeft} pangram${pangramsLeft === 1 ? "" : "s"} still hiding.` : "All pangrams found."}</p>
+       <p class="guide-cost">Using Guided Look means Genius/Queen on this puzzle won't count as a no-hint win in the Locker.</p>`
+    );
+    X.sfx("reveal");
+  }
+  X.mount({ game: "bee", name: "Spelly Bee", guide: openBeeGuide });
 
   // ---------- leaderboard submission ----------
 

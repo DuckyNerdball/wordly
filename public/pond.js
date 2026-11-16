@@ -196,6 +196,7 @@
 
   function afterPlace(r, c) {
     selRack = -1;
+    X.sfx("tap");
     if (cursor && cursor.r === r && cursor.c === c) {
       // move the typing cursor along to the next empty square
       let { r: y, c: x } = cursor;
@@ -317,6 +318,8 @@
     pending = []; selRack = -1; cursor = null;
     G.scores.you += ev.score;
     G.scoreless = 0;
+    X.sfx("good");
+    setTimeout(() => X.fxGood(placed.map((p) => els.board.querySelector(`[data-r="${p.r}"][data-c="${p.c}"]`))), 50);
     G.log.push(`You played ${ev.main.toUpperCase()} for ${ev.score}${ev.bingo ? " (all 7 tiles!)" : ""}`);
     S.sfx(ev.bingo ? "win" : ev.score >= 30 ? "great" : "good");
     if (ev.bingo) say("celebrate", "ALL SEVEN TILES?! +40 bonus! Wow!", 3500);
@@ -353,6 +356,8 @@
     G.log.push(`Game over: you ${G.scores.you}, Quackers ${G.scores.ai}`);
     save();
     render();
+    if (won) X.recordWin({ id: `${G.level}:${Date.now()}`, clean: !G.guided && G.hints === HINTS_PER_GAME, sizeKey: G.level });
+    else X.sfx("lose");
     $("result-title").textContent = won ? "You win! 🎉" : tie ? "It's a tie!" : "Quackers wins this time";
     $("result-text").textContent = `You ${G.scores.you} · Quackers ${G.scores.ai} (${G.level}). ${
       yv || av ? `Leftover tiles: you −${yv}, Quackers −${av}. ` : ""
@@ -452,6 +457,35 @@
     render();
     say("think", `Psst… try ${m.main.toUpperCase()} for ${m.score}!`, 3800);
   });
+
+  // ---------- Extras: sound, Locker, Guided Look ----------
+  const X = window.Extras;
+  function openPondGuide() {
+    if (!G || G.over || G.turn !== "you" || busy) {
+      S.showToast("Guided Look works on your turn");
+      return;
+    }
+    const moves = E.generateMoves(G.board, G.racks.you, dict).slice().sort((a, b) => b.score - a.score);
+    G.guided = true;
+    save();
+    if (!moves.length) {
+      X.showGuide("Word Pond", `<p class="guide-note">No playable word with this rack. Swapping tiles is your best bet.</p>`);
+      return;
+    }
+    const seen = new Set();
+    const top = moves.filter((m) => !seen.has(m.main) && seen.add(m.main)).slice(0, 8); // best placement of each word
+    const total = top.reduce((s, m) => s + m.score, 0) || 1;
+    const rack = G.racks.you.map((l) => (l === "?" ? "_" : l.toUpperCase())).join(" ");
+    const rows = top.map((m) => ({ w: m.main.toUpperCase(), p: m.score / total, tag: `${m.score} points${m.placements.length === 7 ? " · uses all 7 tiles!" : ""} · ${m.placements.length} tile${m.placements.length === 1 ? "" : "s"} from your rack` }));
+    X.showGuide(
+      `Word Pond · your rack: ${rack}`,
+      `${X.guideList(rows, { max: 8 })}
+       <p class="guide-note">The highest-scoring plays Quackers can see for your rack (${moves.length.toLocaleString()} legal plays in all). Bars show each play's share of the points among these eight.</p>
+       <p class="guide-cost">Using Guided Look means a win this game won't count as a no-hint win in the Locker. Your 💡 hints are untouched.</p>`
+    );
+    X.sfx("reveal");
+  }
+  X.mount({ game: "pond", name: "Word Pond", guide: openPondGuide });
 
   // swap
   let swapSel = new Set();

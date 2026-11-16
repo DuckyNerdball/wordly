@@ -145,6 +145,36 @@
     return tile === 0;
   }
 
+  // ---------- Extras: sound, Locker, Guided Look ----------
+  const X = window.Extras;
+  let guidedSeed = null;
+  const layerCount = (t) => getLayers(t).filter(Boolean).length;
+  function openTilesGuide() {
+    if (!state || !state.tiles || state.over) return;
+    guidedSeed = state.seed;
+    const cols = 5; // 5 cols x 6 rows
+    const where = (i) => `R${Math.floor(i / cols) + 1}C${(i % cols) + 1}`;
+    const from = state.selected !== null && !isTileEmpty(state.tiles[state.selected]) ? [state.selected] : state.tiles.map((t, i) => i).filter((i) => !isTileEmpty(state.tiles[i]));
+    const moves = [];
+    from.forEach((a) => state.tiles.forEach((tb, b) => {
+      if (a === b || isTileEmpty(tb) || (from.length > 1 && b < a)) return;
+      const [n1, n2] = simplifyTiles(state.tiles[a], tb);
+      const cleared = layerCount(state.tiles[a]) - layerCount(n1) + layerCount(tb) - layerCount(n2);
+      if (cleared > 0) moves.push({ a, b, cleared, empties: (isTileEmpty(n1) ? 1 : 0) + (isTileEmpty(n2) ? 1 : 0) });
+    }));
+    moves.sort((x, y) => y.cleared - x.cleared || y.empties - x.empties);
+    const total = moves.slice(0, 8).reduce((s, m) => s + m.cleared, 0) || 1;
+    const rows = moves.slice(0, 8).map((m) => ({ w: `${where(m.a)}→${where(m.b)}`, p: m.cleared / total, tag: `clears ${m.cleared} layer${m.cleared === 1 ? "" : "s"}${m.empties ? `, empties ${m.empties} tile${m.empties === 1 ? "" : "s"}` : ""}` }));
+    X.showGuide(
+      `Tiles · combo ${state.combo}`,
+      `${moves.length ? X.guideList(rows, { max: 8 }) : `<p class="guide-note">${from.length === 1 ? "That tile doesn't match anything right now. Pick a different starting tile." : "No matching pairs left."}</p>`}
+       <p class="guide-note">${from.length === 1 ? `Best matches from your selected tile (${where(from[0])}).` : `Best matches on the board.`} Bars compare these eight moves by how many layers each clears. Rows (R) and columns (C) count from the top-left.</p>
+       <p class="guide-cost">Using Guided Look means this win won't count as a no-hint win in the Locker.</p>`
+    );
+    X.sfx("reveal");
+  }
+  X.mount({ game: "tiles", name: "Tiles", guide: openTilesGuide });
+
   // ---------- lifecycle ----------
 
   function setMode(mode) {
@@ -297,6 +327,8 @@
     if (isTileEmpty(targetVal)) return;
 
     ensureStarted();
+    X.sfx("tap");
+    X.fxTap(els.board.querySelectorAll(".tiles-cell")[idx]);
 
     if (state.selected !== null) {
       const prevIdx = state.selected;
@@ -321,11 +353,14 @@
         state.tiles[idx] = next2;
         state.selected = idx;
         state.lastError = null;
+        X.sfx("good");
+        setTimeout(() => X.fxGood([els.board.querySelectorAll(".tiles-cell")[prevIdx], els.board.querySelectorAll(".tiles-cell")[idx]]), 0);
 
         if (state.tiles.every(isTileEmpty)) {
           state.over = true;
           state.selected = null;
           if (stopwatch) state.activeMs = stopwatch.stop();
+          X.recordWin({ id: state.seed, clean: state.errors === 0 && guidedSeed !== state.seed, ms: state.activeMs || 0, units: NUM_TILES * 3, sizeKey: "board" });
           render();
           persist();
           if (state.mode === "daily" && !state.submitted) submitResult();
@@ -338,6 +373,7 @@
         state.selected = idx;
         state.lastError = idx;
         S.showToast("No matching layer — combo reset");
+        X.sfx("bad");
       }
     } else {
       state.selected = idx;

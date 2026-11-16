@@ -258,6 +258,7 @@
     S.sfx("tap");
     renderLetters();
     renderGuess();
+    X.fxTap(els.letters.children[i]);
   }
 
   function typeLetter(ch) {
@@ -320,6 +321,8 @@
       else if (word.length === 6) { react("celebrate", "big", 3500); S.sfx("great"); setTimeout(() => S.sfx("quack2"), 350); }
       else { react("happy", word.length >= 5 ? "great" : "happy"); S.sfx(word.length >= 5 ? "great" : "good"); }
       S.showToast(word.length === 6 ? "The big one! +100 🦆" : `${word.length >= 5 ? "Great word!" : "Nice!"} +${wordPoints(word)}`);
+      X.sfx("good");
+      if (state.found.length === words.length) X.recordWin({ id: `${state.mode}:${state.index}`, clean: state.hints === 0 && !state.revealed });
       flashGuess("pop");
       clearGuess();
       persist();
@@ -336,6 +339,7 @@
       react("happy", "bonus");
       S.sfx("bonus");
       S.showToast(`Bonus word: ${word.toUpperCase()} +${Math.round(wordPoints(word) / 2)}`);
+      X.sfx("good");
       flashGuess("pop");
       clearGuess();
       persist();
@@ -345,9 +349,57 @@
       react("sad", "wrong");
       S.sfx("wrong");
       flashGuess("shake");
+      X.sfx("bad");
     }
     clearGuess();
   }
+
+  // ---------- Extras: sound, Locker, Guided Look, newspaper print ----------
+  const X = window.Extras;
+  async function openJumblyGuide() {
+    if (!state || isOver()) return;
+    X.showGuide("Jumbly", `<p class="guide-note">Working it out…</p>`);
+    let words;
+    try {
+      words = await X.loadWords();
+    } catch (err) {
+      X.showGuide("Guided Look", `<p class="guide-note">${S.escapeHtml(err.message)}</p>`);
+      return;
+    }
+    state.hints += 1;
+    persist();
+    const typed = currentWord();
+    const left = state.puzzle.words.filter((w) => !state.found.includes(w));
+    const pool = typed ? left.filter((w) => w.startsWith(typed)) : left;
+    const use = pool.length ? pool : left;
+    const ranked = X.rank(use.map((w) => [w.toUpperCase(), words.z.get(w.toUpperCase()) || 2]));
+    const show = Math.max(1, typed.length + 1);
+    const rows = ranked.map(({ w, p }) => ({ w: w.slice(0, show) + "·".repeat(Math.max(0, w.length - show)), p, tag: `${w.length} letters${w.length === 6 ? " · the big one 🦆" : ""}` }));
+    const byLen = {};
+    left.forEach((w) => (byLen[w.length] = (byLen[w.length] || 0) + 1));
+    X.showGuide(
+      `Jumbly · ${left.length} word${left.length === 1 ? "" : "s"} left`,
+      `${typed && !pool.length ? `<p class="guide-note">No word you still need starts with ${S.escapeHtml(typed.toUpperCase())}.</p>` : ""}
+       ${X.guideList(rows, { have: (k) => k < show, max: 10 })}
+       <div class="guide-starts">${Object.entries(byLen).sort((a, b) => a[0] - b[0]).map(([L, n]) => `<span><b>${L}-letter</b>&times;${n}</span>`).join("")}</div>
+       <p class="guide-note">Most findable first. Odds lean toward more common words${typed ? `, among words starting ${S.escapeHtml(typed.toUpperCase())}` : ""}.</p>
+       <p class="guide-cost">Counts as one hint.</p>`
+    );
+    X.sfx("reveal");
+  }
+  function printJumbly() {
+    if (!state) return;
+    const letters = state.order.map((c) => `<span class="pn-tile">${S.escapeHtml(c.toUpperCase())}</span>`).join("");
+    const groups = {};
+    state.puzzle.words.forEach((w) => (groups[w.length] = groups[w.length] || []).push(w));
+    const blanks = Object.keys(groups).sort((a, b) => a - b).map((L) => `<div class="pn-jgroup"><b>${L} letters</b>${groups[L].map(() => `<span class="pn-blank">${"&#9633;".repeat(Number(L))}</span>`).join("")}</div>`).join("");
+    const answers = Object.keys(groups).sort((a, b) => a - b).map((L) => `<div class="pn-jgroup"><b>${L} letters</b>${groups[L].map((w) => `<span class="pn-blank">${S.escapeHtml(w.toUpperCase())}</span>`).join("")}</div>`).join("");
+    X.printPages([
+      { title: "JUMBLY", by: "Unscramble the letters", bodyHtml: `<p class="pn-howto">Make as many words of three letters or more as you can from these letters. One word uses all six.</p><div class="pn-center pn-tiles">${letters}</div><div class="pn-jumbly">${blanks}</div>`, tag: state.date ? X.dateTag(new Date(`${state.date}T12:00:00`)) : "" },
+      { title: "JUMBLY", by: "Answer", answer: true, bodyHtml: `<div class="pn-jumbly">${answers}</div>` },
+    ]);
+  }
+  X.mount({ game: "jumbly", name: "Jumbly", guide: openJumblyGuide, print: printJumbly });
 
   function hint() {
     if (isOver()) return;
