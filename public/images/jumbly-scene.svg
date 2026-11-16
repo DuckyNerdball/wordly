@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1000" preserveAspectRatio="xMidYMax slice">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#7cc8f0"/><stop offset="1" stop-color="#d6f0ff"/>
+    </linearGradient>
+    <linearGradient id="pond" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#4aa8d8"/><stop offset="1" stop-color="#2b7fb3"/>
+    </linearGradient>
+  </defs>
+  <rect width="1600" height="1000" fill="url(#sky)"/>
+  <circle cx="1380" cy="120" r="70" fill="#fff6b8"/>
+  <g fill="#ffffff" opacity="0.9">
+    <ellipse cx="260" cy="140" rx="90" ry="34"/><ellipse cx="330" cy="120" rx="70" ry="40"/><ellipse cx="200" cy="130" rx="55" ry="28"/>
+    <ellipse cx="920" cy="90" rx="80" ry="28"/><ellipse cx="980" cy="76" rx="60" ry="34"/>
+  </g>
+  <path d="M0 470 Q260 360 520 430 T1040 410 T1600 430 V1000 H0Z" fill="#8ccf6a"/>
+  <path d="M0 560 Q300 470 640 540 T1300 520 T1600 540 V1000 H0Z" fill="#6dbb4f"/>
+  <g>
+    <rect x="186" y="430" width="16" height="60" fill="#7a5230"/><circle cx="194" cy="410" r="46" fill="#3f9a3a"/><circle cx="168" cy="425" r="30" fill="#4caf45"/>
+    <rect x="1336" y="420" width="16" height="66" fill="#7a5230"/><circle cx="1344" cy="398" r="52" fill="#3f9a3a"/><circle cx="1376" cy="416" r="32" fill="#4caf45"/>
+    <rect x="1186" y="455" width="12" height="44" fill="#7a5230"/><circle cx="1192" cy="440" r="32" fill="#4caf45"/>
+  </g>
+  <path d="M0 700 Q400 650 800 690 T1600 680 V1000 H0Z" fill="#59a93e"/>
+  <ellipse cx="800" cy="1000" rx="900" ry="250" fill="url(#pond)"/>
+  <g stroke="#bfe6ff" stroke-width="5" fill="none" stroke-linecap="round" opacity="0.7">
+    <path d="M300 880 q30 -12 60 0"/><path d="M620 830 q40 -14 80 0"/><path d="M1000 900 q30 -12 60 0"/><path d="M1220 850 q35 -12 70 0"/>
+  </g>
+  <g fill="#3d7f2c">
+    <rect x="110" y="700" width="7" height="140" rx="3"/><rect x="130" y="690" width="7" height="150" rx="3"/><rect x="1470" y="700" width="7" height="140" rx="3"/>
+  </g>
+  <g fill="#6b4524">
+    <rect x="106" y="680" width="14" height="40" rx="7"/><rect x="127" y="668" width="14" height="40" rx="7"/><rect x="1466" y="680" width="14" height="40" rx="7"/>
+  </g>
+  <g fill="#4f9a3a"><ellipse cx="420" cy="940" rx="46" ry="14"/><ellipse cx="1150" cy="960" rx="52" ry="15"/></g>
+</svg>

@@ -2908,3 +2908,120 @@ textarea {
   .jb-box { width: 1.55rem; height: 1.55rem; font-size: 0.9rem; }
   .jb-letter { font-size: 1.45rem; }
 }
+
+/* ---------- Jumbly "pond" skin (original art: images/jumbly-scene.svg, images/jumbly-duck.svg) ---------- */
+body.game-jumbly {
+  background: #7cc8f0 url("images/jumbly-scene.svg") center bottom / cover no-repeat fixed;
+  --jb-wood: #b9824a;
+  --jb-wood-dark: #6b4524;
+  --jb-wood-light: #d9a66b;
+  --jb-cream: #fff8e6;
+  --jb-ink: #2b1d10;
+  --jb-green: #3a9d4f;
+}
+body.game-jumbly .app-header {
+  background: rgba(255, 248, 230, 0.88);
+  backdrop-filter: blur(4px);
+  border-bottom: 3px solid var(--jb-wood-dark);
+  color: var(--jb-ink);
+}
+body.game-jumbly .app-title { color: var(--jb-ink); text-shadow: 0 1px 0 #fff; }
+body.game-jumbly .jumbly-main { color: var(--jb-ink); padding-top: 0.6rem; }
+
+/* wooden planks: score / progress */
+body.game-jumbly .jumbly-progress { gap: 0.6rem; }
+body.game-jumbly .jb-plank {
+  display: inline-flex; align-items: baseline; gap: 0.45rem;
+  padding: 0.45rem 0.95rem; border-radius: 10px;
+  background: repeating-linear-gradient(180deg, var(--jb-wood) 0 9px, #b07a43 9px 11px);
+  border: 3px solid var(--jb-wood-dark); color: var(--jb-cream);
+  font-weight: 800; text-shadow: 0 1px 0 rgba(0,0,0,0.45);
+  box-shadow: 0 3px 0 rgba(0,0,0,0.25);
+}
+body.game-jumbly .jb-plank-label { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.08em; }
+body.game-jumbly .jb-plank-value { font-size: 1.35rem; color: #ffe27a; }
+body.game-jumbly .jb-bonus-count { color: #ffe27a; }
+
+/* word board: a wooden signboard */
+body.game-jumbly .jb-board {
+  background: repeating-linear-gradient(180deg, var(--jb-wood-light) 0 22px, #cf9a5f 22px 24px);
+  border: 4px solid var(--jb-wood-dark); border-radius: 14px;
+  padding: 0.7rem 0.8rem; box-shadow: 0 5px 0 rgba(0,0,0,0.22), inset 0 0 0 2px rgba(255,255,255,0.25);
+  max-height: 38vh;
+}
+body.game-jumbly .jb-group-label { color: var(--jb-ink); opacity: 0.85; }
+body.game-jumbly .jb-box {
+  background: var(--jb-cream); border: 2px solid var(--jb-wood-dark); color: var(--jb-ink); border-radius: 4px;
+}
+body.game-jumbly .jb-word.big .jb-box { border-color: #d0531a; border-width: 3px; }
+body.game-jumbly .jb-word.found .jb-box { background: var(--jb-green); border-color: #23692f; color: #fff; }
+body.game-jumbly .jb-word.found { animation: jb-pop 0.35s; }
+body.game-jumbly .jb-word.missed .jb-box { background: #e9dcc3; color: #8a6a45; border-style: dashed; }
+body.game-jumbly .jb-box.hinted { color: #d0531a; }
+
+/* current guess: a cream banner */
+body.game-jumbly .jb-guess {
+  background: rgba(255, 248, 230, 0.92); border: 3px solid var(--jb-wood-dark); border-radius: 999px;
+  min-height: 3.6rem; padding: 0 1.2rem; box-shadow: 0 3px 0 rgba(0,0,0,0.2);
+}
+body.game-jumbly .jb-guess-placeholder { color: #8a6a45; }
+
+/* the pond with six ducks holding letter signs */
+body.game-jumbly .jb-letters {
+  position: relative; gap: 0.2rem; padding: 0.4rem 0.4rem 0.9rem; max-width: 34rem;
+  border-radius: 999px 999px 40% 40% / 60% 60% 40% 40%;
+  background:
+    radial-gradient(ellipse at 50% 85%, rgba(255,255,255,0.18), transparent 60%),
+    linear-gradient(180deg, #5bb6e2, #2f86bd);
+  border: 3px solid #23628c; box-shadow: inset 0 6px 12px rgba(0,0,0,0.15), 0 4px 0 rgba(0,0,0,0.2);
+}
+body.game-jumbly .jb-letter {
+  --size: min(5.2rem, calc((100vw - 3rem) / 6));
+  width: var(--size); height: calc(var(--size) * 1.25);
+  background: none; box-shadow: none; border-radius: 0; padding: 0;
+  position: relative; display: block; cursor: pointer; color: var(--jb-ink);
+  animation: jb-bob 2.4s ease-in-out infinite; animation-delay: var(--bob-delay, 0s);
+  transition: transform 0.25s ease, opacity 0.25s ease;
+}
+body.game-jumbly .jb-duck {
+  position: absolute; inset: 0 0 18% 0;
+  background: url("images/jumbly-duck.svg") center top / contain no-repeat;
+}
+body.game-jumbly .jb-sign {
+  position: absolute; left: 6%; right: 6%; bottom: 4%; height: 46%;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--jb-cream); border: 3px solid var(--jb-wood-dark); border-radius: 8px;
+  font-size: calc(var(--size) * 0.42); font-weight: 900; color: var(--jb-ink);
+  box-shadow: 0 3px 0 rgba(0,0,0,0.25);
+}
+body.game-jumbly .jb-letter:active { transform: translateY(3px) scale(0.97); }
+body.game-jumbly .jb-letter.used { opacity: 0.3; transform: translateY(18%); animation: none; }
+body.game-jumbly .jb-letters.splash .jb-letter:not(.used) { animation: jb-hop 0.45s ease; }
+@keyframes jb-bob { 0%, 100% { transform: translateY(0) rotate(-1.5deg); } 50% { transform: translateY(-4px) rotate(1.5deg); } }
+@keyframes jb-hop { 40% { transform: translateY(-14px); } }
+
+/* wooden plank buttons */
+body.game-jumbly .jb-controls .pill-btn,
+body.game-jumbly .jb-enter {
+  background: repeating-linear-gradient(180deg, var(--jb-wood) 0 10px, #b07a43 10px 12px);
+  border: 3px solid var(--jb-wood-dark); color: var(--jb-cream); border-radius: 12px;
+  font-weight: 900; text-transform: uppercase; letter-spacing: 0.04em;
+  text-shadow: 0 1px 0 rgba(0,0,0,0.5); box-shadow: 0 4px 0 var(--jb-wood-dark);
+}
+body.game-jumbly .jb-enter { background: linear-gradient(180deg, #4fb35f, #2f8a3f); border-color: #1f5e2a; box-shadow: 0 4px 0 #1f5e2a; }
+body.game-jumbly .jb-controls .pill-btn:active,
+body.game-jumbly .jb-enter:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--jb-wood-dark); }
+body.game-jumbly .jb-controls-secondary .pill-btn { background: rgba(255, 248, 230, 0.92); color: var(--jb-ink); text-shadow: none; text-transform: none; }
+@media (prefers-reduced-motion: reduce) {
+  body.game-jumbly .jb-letter { animation: none; }
+}
+body.game-jumbly .jumbly-progress { flex-wrap: nowrap; }
+@media (max-width: 520px) {
+  body.game-jumbly .jumbly-main { gap: 0.6rem; }
+  body.game-jumbly .jb-plank { padding: 0.35rem 0.6rem; font-size: 0.9rem; }
+  body.game-jumbly .jb-plank-value { font-size: 1.1rem; }
+  body.game-jumbly .jb-board { max-height: none; min-height: 7rem; height: 30vh; }
+  body.game-jumbly .jb-guess { min-height: 3rem; }
+  body.game-jumbly .jb-guess-letter { font-size: 1.9rem; }
+  body.game-jumbly .jb-controls .pill-btn, body.game-jumbly .jb-enter { padding: 0.5rem 0.8rem; font-size: 0.92rem; }
+}

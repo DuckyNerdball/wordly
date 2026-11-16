@@ -135,10 +135,10 @@
     renderLetters();
     renderGuess();
     const { words } = state.puzzle;
-    els.foundCount.textContent = state.revealed
-      ? `You found ${state.found.length} of ${words.length} words`
-      : `Found ${state.found.length} of ${words.length} words`;
+    els.foundCount.textContent = `${state.found.length} of ${words.length} words`;
     els.bonusCount.textContent = state.bonus.length ? `+ ${state.bonus.length} bonus` : "";
+    const scoreEl = document.getElementById("jb-score");
+    if (scoreEl) scoreEl.textContent = String(score());
     const done = state.revealed || state.found.length === words.length;
     [els.enter, els.del, els.clear, els.shuffle, els.hint, els.reveal].forEach((b) => (b.disabled = done));
   }
@@ -173,7 +173,7 @@
     els.letters.innerHTML = state.order
       .map(
         (ch, i) =>
-          `<button type="button" class="jb-letter${picked.includes(i) ? " used" : ""}" data-i="${i}" aria-label="${ch.toUpperCase()}"${picked.includes(i) ? " disabled" : ""}>${ch.toUpperCase()}</button>`
+          `<button type="button" class="jb-letter${picked.includes(i) ? " used" : ""}" data-i="${i}" aria-label="${ch.toUpperCase()}"${picked.includes(i) ? " disabled" : ""} style="--bob-delay:${(i * 0.37).toFixed(2)}s"><span class="jb-duck" aria-hidden="true"></span><span class="jb-sign">${ch.toUpperCase()}</span></button>`
       )
       .join("");
   }
@@ -183,6 +183,15 @@
     els.guess.innerHTML = word
       ? word.toUpperCase().split("").map((c) => `<span class="jb-guess-letter">${c}</span>`).join("")
       : `<span class="jb-guess-placeholder">Tap the letters below</span>`;
+  }
+
+  // 10 points a letter; the six-letter word is worth 100; bonus words half.
+  function wordPoints(w) {
+    return w.length === 6 ? 100 : w.length * 10;
+  }
+
+  function score() {
+    return state.found.reduce((t, w) => t + wordPoints(w), 0) + state.bonus.reduce((t, w) => t + Math.round(wordPoints(w) / 2), 0);
   }
 
   function currentWord() {
@@ -250,18 +259,21 @@
       flashGuess("shake");
     } else if (words.includes(word)) {
       state.found.push(word);
-      S.showToast(word.length === 6 ? "The big one! 🦆" : word.length >= 5 ? "Great word!" : "Nice!");
+      S.showToast(word.length === 6 ? "The big one! +100 🦆" : `${word.length >= 5 ? "Great word!" : "Nice!"} +${wordPoints(word)}`);
       flashGuess("pop");
       clearGuess();
       persist();
       render();
+      els.letters.classList.remove("splash");
+      void els.letters.offsetWidth;
+      els.letters.classList.add("splash");
       const el = els.board.querySelector(`[data-word="${word}"]`);
       if (el) el.scrollIntoView({ block: "nearest", behavior: "smooth" });
       if (state.found.length === words.length) setTimeout(showResult, 500);
       return;
     } else if (bonus.includes(word)) {
       state.bonus.push(word);
-      S.showToast(`Bonus word: ${word.toUpperCase()}`);
+      S.showToast(`Bonus word: ${word.toUpperCase()} +${Math.round(wordPoints(word) / 2)}`);
       flashGuess("pop");
       clearGuess();
       persist();
@@ -313,13 +325,13 @@
   function shareText() {
     const label = state.mode === "daily" ? `Jumbly ${state.date}` : "Jumbly (practice)";
     const all = state.found.length === state.puzzle.words.length && !state.revealed;
-    return `${label} 🦆\n${all ? "Found every word" : `Found ${state.found.length}/${state.puzzle.words.length} words`}${state.bonus.length ? ` + ${state.bonus.length} bonus` : ""}${state.hints ? ` · ${state.hints} hint${state.hints === 1 ? "" : "s"}` : ""}\ncrossword.theduckynerdball.com/jumbly`;
+    return `${label} 🦆 Score ${score()}\n${all ? "Found every word" : `Found ${state.found.length}/${state.puzzle.words.length} words`}${state.bonus.length ? ` + ${state.bonus.length} bonus` : ""}${state.hints ? ` · ${state.hints} hint${state.hints === 1 ? "" : "s"}` : ""}\ncrossword.theduckynerdball.com/jumbly`;
   }
 
   function showResult() {
     const all = state.found.length === state.puzzle.words.length && !state.revealed;
     document.getElementById("result-title").textContent = all ? "You found them all! 🦆" : "Here are all the answers";
-    document.getElementById("result-text").textContent = `${state.found.length} of ${state.puzzle.words.length} words${
+    document.getElementById("result-text").textContent = `Score ${score()} · ${state.found.length} of ${state.puzzle.words.length} words${
       state.bonus.length ? `, plus ${state.bonus.length} bonus word${state.bonus.length === 1 ? "" : "s"}` : ""
     }${state.hints ? ` · ${state.hints} hint${state.hints === 1 ? "" : "s"}` : ""}. The six-letter word was ${state.puzzle.root.toUpperCase()}.`;
     document.getElementById("play-again-btn").classList.toggle("hidden", state.mode !== "practice");

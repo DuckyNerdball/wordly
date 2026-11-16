@@ -11,8 +11,8 @@
 <link rel="icon" type="image/png" href="icon.png">
 <link rel="apple-touch-icon" href="icon.png">
 <link rel="manifest" href="manifest.json">
-<link rel="stylesheet" href="style.css?v=15">
-<link rel="stylesheet" href="games.css?v=15">
+<link rel="stylesheet" href="style.css?v=16">
+<link rel="stylesheet" href="games.css?v=16">
 </head>
 <body class="game-jumbly">
 <div id="toast-container" class="toast-container" aria-live="polite"></div>
@@ -41,8 +41,8 @@
 
 <main class="game-main jumbly-main">
   <div class="jumbly-progress" aria-live="polite">
-    <span id="jb-found-count">Found 0 of 0 words</span>
-    <span id="jb-bonus-count" class="jb-bonus-count"></span>
+    <span class="jb-plank jb-score-plank"><span class="jb-plank-label">Score</span><span id="jb-score" class="jb-plank-value">0</span></span>
+    <span class="jb-plank"><span id="jb-found-count">Found 0 of 0 words</span><span id="jb-bonus-count" class="jb-bonus-count"></span></span>
   </div>
 
   <div id="jb-board" class="jb-board" aria-label="Words to find"></div>
@@ -54,7 +54,7 @@
   <div class="jb-controls">
     <button id="jb-clear" class="pill-btn" type="button">Clear</button>
     <button id="jb-delete" class="pill-btn" type="button">Delete</button>
-    <button id="jb-shuffle" class="pill-btn" type="button">&#10227; Mix</button>
+    <button id="jb-shuffle" class="pill-btn" type="button">&#10227; Mix up</button>
     <button id="jb-enter" class="primary-btn jb-enter" type="button">Enter</button>
   </div>
 
@@ -75,8 +75,9 @@
       <li>Words are 3 to 6 letters long. Each letter can be used once per word.</li>
       <li>The empty boxes show how many words are left and how long each one is.</li>
       <li>At least one word uses <strong>all six letters</strong> &mdash; that's the big one.</li>
-      <li>Real words that aren't on the board still count as <strong>bonus words</strong>.</li>
-      <li><strong>Mix</strong> shuffles the letters if you're stuck. <strong>Hint</strong> shows the first letter of a word you haven't found.</li>
+      <li>Real words that aren't on the board still count as <strong>bonus words</strong> (half points).</li>
+      <li>Scoring: 10 points per letter, and the six-letter word is worth 100.</li>
+      <li><strong>Mix up</strong> shuffles the letters if you're stuck. <strong>Hint</strong> shows the first letter of a word you haven't found.</li>
     </ul>
     <p><strong>Daily</strong> gives everyone the same letters, resetting at midnight. <strong>Practice</strong> gives a new puzzle whenever you like. There's no timer &mdash; take your time.</p>
     <p class="help-keys">Keyboard: type letters, <kbd>Enter</kbd> to submit, <kbd>Backspace</kbd> to delete, <kbd>Space</kbd> to mix.</p>
@@ -94,8 +95,8 @@
   </div>
 </div>
 
-<script src="common.js?v=15"></script>
-<script src="words-jumbly.js?v=15"></script>
-<script src="jumbly.js?v=15"></script>
+<script src="common.js?v=16"></script>
+<script src="words-jumbly.js?v=16"></script>
+<script src="jumbly.js?v=16"></script>
 </body>
 </html>
