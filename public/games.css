@@ -2821,3 +2821,20 @@ textarea {
 .archive-day-meta { font-size: 0.82rem; white-space: normal; }
 
 .lock-tag { font-size: 0.7rem; font-weight: 700; padding: 0.1rem 0.45rem; margin-left: 0.3rem; border-radius: 999px; background: var(--color-key-bg); color: var(--color-key-text); vertical-align: middle; letter-spacing: 0; }
+
+/* ---------- Crossword puzzle library ---------- */
+.library-search {
+  width: 100%; box-sizing: border-box; margin: 0 0 0.7rem; padding: 0.65rem 0.8rem;
+  font-size: 1rem; border-radius: 10px; border: 1.5px solid var(--color-border-strong);
+  background: var(--color-surface); color: var(--color-text);
+}
+.library-list { display: flex; flex-direction: column; gap: 0.45rem; max-height: 55vh; overflow-y: auto; padding: 2px; }
+.library-item {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 0.15rem; text-align: left;
+  padding: 0.7rem 0.85rem; border-radius: 10px; border: 1px solid var(--color-border);
+  background: var(--color-surface); color: var(--color-text); cursor: pointer;
+}
+.library-item:hover, .library-item:focus-visible { border-color: var(--color-accent); }
+.library-item.active { border-color: var(--color-accent); box-shadow: 0 0 0 1.5px var(--color-accent); }
+.library-date { font-weight: 800; font-size: 1rem; }
+.library-title { font-size: 0.85rem; color: var(--color-text-dim); }

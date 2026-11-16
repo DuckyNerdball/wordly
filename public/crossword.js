@@ -915,6 +915,98 @@
       },
     });
   }
+
+  // ---------- puzzle library: browse every puzzle by its original publish date ----------
+  function puzzlePublished(p) {
+    const iso = /(\d{4})-(\d{2})-(\d{2})/.exec(p.id || "");
+    if (iso) return new Date(+iso[1], +iso[2] - 1, +iso[3]);
+    const us = /\((\d{1,2})\/(\d{1,2})\/(\d{4})\)/.exec(p.title || "");
+    if (us) return new Date(+us[3], +us[1] - 1, +us[2]);
+    return null;
+  }
+
+  function startLibrary(index) {
+    teardown();
+    setMode("practice");
+    hideGate();
+    const saved = S.load(KEYS.practice);
+    loadPuzzle("practice", null, index, saved && saved.index === index && !saved.over ? saved : {});
+  }
+
+  (function initLibrary() {
+    const row = document.querySelector(".controls-row");
+    if (!row || document.getElementById("library-btn")) return;
+    const e = S.escapeHtml;
+    const items = CFG.puzzles
+      .map((p, i) => ({ i, p, d: puzzlePublished(p) }))
+      .sort((a, b) => (b.d ? b.d.getTime() : -Infinity) - (a.d ? a.d.getTime() : -Infinity) || a.i - b.i);
+    const fmt = (d) => d.toLocaleDateString(undefined, { weekday: "long", year: "numeric", month: "long", day: "numeric" });
+    items.forEach((it) => {
+      it.dateText = it.d ? fmt(it.d) : `Puzzle #${it.i + 1}`;
+      it.search = `${it.dateText} ${it.p.title || ""} ${it.p.author || ""}`.toLowerCase();
+    });
+
+    document.body.insertAdjacentHTML(
+      "beforeend",
+      `<div id="library-modal" class="modal-overlay hidden">
+        <div class="modal modal-wide">
+          <button class="modal-close" data-close="library-modal" aria-label="Close">&times;</button>
+          <h2>Puzzle Library</h2>
+          <p class="archive-sub">All ${items.length} puzzles in this collection${items.some((x) => x.d) ? ", newest first, with the date each was first published" : ""}. Tap one to play it.</p>
+          <input id="library-search" class="library-search" type="search" placeholder="Search by date, title or author" autocomplete="off">
+          <div id="library-list" class="library-list"></div>
+        </div>
+      </div>`
+    );
+    const modal = document.getElementById("library-modal");
+    const list = document.getElementById("library-list");
+    const search = document.getElementById("library-search");
+    modal.querySelector(".modal-close").addEventListener("click", () => S.closeModal("library-modal"));
+    modal.addEventListener("click", (ev) => {
+      if (ev.target === modal) S.closeModal("library-modal");
+    });
+
+    function render() {
+      const q = search.value.trim().toLowerCase();
+      const shown = q ? items.filter((it) => it.search.includes(q)) : items;
+      list.innerHTML = shown.length
+        ? shown
+            .map(
+              (it) => `<button type="button" class="library-item${state && state.index === it.i ? " active" : ""}" data-i="${it.i}">
+                <span class="library-date">${e(it.dateText)}</span>
+                <span class="library-title">${e(it.p.title || "")}${it.p.author ? ` &middot; by ${e(it.p.author)}` : ""}</span>
+              </button>`
+            )
+            .join("")
+        : `<p class="lb-status">No puzzles match &ldquo;${e(q)}&rdquo;.</p>`;
+    }
+    search.addEventListener("input", render);
+    list.addEventListener("click", (ev) => {
+      const btn = ev.target.closest(".library-item");
+      if (!btn) return;
+      S.closeModal("library-modal");
+      startLibrary(Number(btn.dataset.i));
+    });
+
+    const btn = document.createElement("button");
+    btn.id = "library-btn";
+    btn.type = "button";
+    btn.className = "icon-btn labeled-btn";
+    btn.title = "Puzzle library";
+    btn.setAttribute("aria-label", "Puzzle library by publish date");
+    btn.innerHTML = '<span class="btn-icon" aria-hidden="true">&#128218;</span><span class="btn-label">Library</span>';
+    btn.addEventListener("click", () => {
+      search.value = "";
+      render();
+      S.openModal("library-modal");
+      const active = list.querySelector(".library-item.active");
+      if (active) active.scrollIntoView({ block: "center" });
+    });
+    const lb = document.getElementById("leaderboard-btn");
+    if (lb && lb.parentNode === row) row.insertBefore(btn, lb);
+    else row.appendChild(btn);
+  })();
+
   S.wireNameGate(() => startDaily(state && state.date));
 
   let startMode = "daily";
