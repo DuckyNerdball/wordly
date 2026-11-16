@@ -1035,10 +1035,92 @@
     return out;
   }
 
+  // Newspaper-style grid: hairline cells, heavy outer rule, small Helvetica numbers, solid blocks.
+  function newsGridSvg(puzzle, withAnswers, maxIn) {
+    const { rows, cols, grid, cellNums } = puzzle;
+    const cs = 40;
+    const w = cols * cs;
+    const h = rows * cs;
+    let out = `<svg class="pn-grid" viewBox="-2 -2 ${w + 4} ${h + 4}" style="width:min(100%, ${maxIn}in)" xmlns="http://www.w3.org/2000/svg">`;
+    for (let r = 0; r < rows; r++) {
+      for (let col = 0; col < cols; col++) {
+        const i = r * cols + col;
+        const x = col * cs;
+        const y = r * cs;
+        if (grid[i] === ".") {
+          out += `<rect x="${x}" y="${y}" width="${cs}" height="${cs}" fill="#000"/>`;
+          continue;
+        }
+        out += `<rect x="${x}" y="${y}" width="${cs}" height="${cs}" fill="#fff" stroke="#000" stroke-width="1"/>`;
+        if (cellNums[i] && !withAnswers) out += `<text x="${x + 2}" y="${y + 10}" font-size="9.5" font-family="Helvetica, Arial, sans-serif" fill="#000">${cellNums[i]}</text>`;
+        if (withAnswers) out += `<text x="${x + cs / 2}" y="${y + cs * 0.76}" font-size="24" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" fill="#000">${grid[i]}</text>`;
+      }
+    }
+    out += `<rect x="0" y="0" width="${w}" height="${h}" fill="none" stroke="#000" stroke-width="3.5"/></svg>`;
+    return out;
+  }
+
+  function newsDateTag(d) {
+    return d ? `${d.getMonth() + 1}-${d.getDate()}` : "";
+  }
+
+  function newspaperSheet(pz, withAnswers, pub) {
+    const e = S.escapeHtml;
+    const author = (pz.author || "").toUpperCase();
+    const clueList = (words) => words.map((wd) => `<li><b>${wd.num}</b><span>${e(wd.clue)}</span></li>`).join("");
+    const big = pz.cols > 9;
+    const tag = newsDateTag(pub);
+    let html = `
+      <div class="ps-page pn-page">
+        <div class="pn-head">
+          <div class="pn-title">CROSSWORD</div>
+          ${author ? `<div class="pn-by">By ${e(author)}</div>` : ""}
+          <div class="pn-name">Name ______________________</div>
+        </div>
+        <div class="pn-clues">
+          <h3>ACROSS</h3><ol>${clueList(pz.acrossWords)}</ol>
+          <h3>DOWN</h3><ol>${clueList(pz.downWords)}</ol>
+        </div>
+        <div class="pn-gridwrap">${newsGridSvg(pz, false, big ? 6.6 : 4.6)}<div class="pn-tag">${e(tag)}</div></div>
+      </div>`;
+    if (withAnswers) {
+      html += `
+      <div class="ps-page pn-page pn-answers">
+        <div class="pn-head"><div class="pn-title">CROSSWORD</div>${author ? `<div class="pn-by">By ${e(author)}</div>` : ""}</div>
+        <div class="pn-gridwrap pn-keywrap">${newsGridSvg(pz, true, big ? 6.6 : 4.6)}
+          <div class="pn-keycap">${pub ? `${e(pub.toLocaleDateString(undefined, { weekday: "long" }))}'s answer` : "Answer"}</div>
+        </div>
+      </div>`;
+    }
+    return html;
+  }
+
+  function printStyle() {
+    try {
+      return localStorage.getItem("crossy:printStyle") === "classic" ? "classic" : "newspaper";
+    } catch {
+      return "newspaper";
+    }
+  }
+
   function printPuzzle(withAnswers) {
     if (!state || !state.puzzle) return;
     const pz = state.puzzle;
     const e = S.escapeHtml;
+    if (printStyle() === "newspaper") {
+      const pubN = typeof puzzlePublished === "function" ? puzzlePublished(pz) : null;
+      let sheetN = document.getElementById("print-sheet");
+      if (!sheetN) {
+        sheetN = document.createElement("div");
+        sheetN.id = "print-sheet";
+        document.body.appendChild(sheetN);
+      }
+      sheetN.className = "pn";
+      sheetN.innerHTML = newspaperSheet(pz, withAnswers, pubN);
+      S.closeModal("print-modal");
+      setTimeout(() => window.print(), 50);
+      return;
+    }
     const pub = typeof puzzlePublished === "function" ? puzzlePublished(pz) : null;
     const pubText = pub ? pub.toLocaleDateString(undefined, { weekday: "long", year: "numeric", month: "long", day: "numeric" }) : "";
     const big = pz.cols > 9;
@@ -1050,6 +1132,7 @@
       sheet.id = "print-sheet";
       document.body.appendChild(sheet);
     }
+    sheet.className = "";
     sheet.innerHTML = `
       <div class="ps-page">
         <div class="ps-head">
@@ -1091,9 +1174,19 @@
             <button id="print-key" class="pill-btn print-choice" type="button">Print puzzle + answer key</button>
           </div>
           <p class="donate-note">The answer key prints on its own page, so you can keep it separate.</p>
+          <label class="print-style-row"><input id="print-style-news" type="checkbox" /> Newspaper style (like the Salem News page)</label>
         </div>
       </div>`
     );
+    const styleBox = document.getElementById("print-style-news");
+    styleBox.checked = printStyle() === "newspaper";
+    styleBox.addEventListener("change", () => {
+      try {
+        localStorage.setItem("crossy:printStyle", styleBox.checked ? "newspaper" : "classic");
+      } catch {
+        // ignore
+      }
+    });
     const modal = document.getElementById("print-modal");
     modal.querySelector(".modal-close").addEventListener("click", () => S.closeModal("print-modal"));
     modal.addEventListener("click", (ev) => {

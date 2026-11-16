@@ -2843,6 +2843,7 @@ textarea {
 .print-choices { display: flex; flex-direction: column; gap: 0.6rem; align-items: stretch; margin-top: 0.4rem; }
 .print-choice { font-size: 1.05rem; padding: 0.75rem 1rem; border: none; cursor: pointer; }
 #print-sheet { display: none; }
+.print-style-row { display: flex; gap: 0.45em; align-items: center; justify-content: center; margin-top: 0.7em; font-size: 0.95rem; cursor: pointer; }
 @media print {
   @page { size: letter portrait; margin: 0.5in; }
   html, body { background: #fff !important; color: #000 !important; font-size: 12pt !important; }
@@ -2863,6 +2864,26 @@ textarea {
   .ps-col ol { list-style: none; margin: 0 0 0.15in; padding: 0; }
   .ps-col li { margin: 0 0 0.04in; break-inside: avoid; }
   .ps-len { font-size: 9.5pt; color: #444; }
+
+  /* Newspaper style: modelled on a syndicated daily-paper puzzle panel */
+  #print-sheet.pn { font-family: "Helvetica Neue", Helvetica, Arial, sans-serif; }
+  .pn-page { max-width: 7.5in; margin: 0 auto; }
+  .pn-head { display: flex; align-items: baseline; flex-wrap: wrap; column-gap: 0.18in; border-bottom: 2.5pt solid #000; padding-bottom: 0.04in; margin-bottom: 0.1in; }
+  .pn-title { font-family: Georgia, "Times New Roman", Times, serif; font-weight: 700; font-style: italic; font-size: 30pt; letter-spacing: -0.01em; line-height: 1; }
+  .pn-by { font-weight: 700; font-size: 13pt; letter-spacing: 0.01em; }
+  .pn-name { margin-left: auto; font-size: 10pt; }
+  .pn-clues { columns: 4; column-gap: 0.16in; font-size: 11pt; line-height: 1.16; font-stretch: condensed; }
+  .pn-clues h3 { font-weight: 700; font-size: 12pt; margin: 0 0 0.03in; letter-spacing: 0.02em; break-after: avoid; }
+  .pn-clues h3 + ol + h3 { margin-top: 0.12in; }
+  .pn-clues ol { list-style: none; margin: 0; padding: 0; }
+  .pn-clues li { display: flex; gap: 0.05in; margin: 0 0 0.02in; break-inside: avoid; }
+  .pn-clues li b { flex: 0 0 0.24in; text-align: right; font-weight: 700; }
+  .pn-clues li span { flex: 1 1 auto; }
+  .pn-gridwrap { margin: 0.16in 0 0 auto; width: fit-content; max-width: 100%; text-align: right; }
+  .pn-grid { height: auto; display: block; }
+  .pn-tag { font-weight: 700; font-size: 10.5pt; border-top: 1.5pt solid #000; display: inline-block; padding-top: 0.02in; margin-top: 0.03in; }
+  .pn-keywrap { margin: 0.3in auto 0; text-align: center; }
+  .pn-keycap { font-weight: 700; font-size: 12pt; margin-top: 0.06in; }
 }
 
 /* ---------- Jumbly ---------- */
