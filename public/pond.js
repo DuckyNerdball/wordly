@@ -190,6 +190,7 @@
       return;
     }
     pending.push({ r, c, l, blank: false, rackIndex });
+    S.sfx("place");
     afterPlace(r, c);
   }
 
@@ -206,7 +207,7 @@
 
   function takeBack(r, c) {
     const i = pending.findIndex((p) => p.r === r && p.c === c);
-    if (i >= 0) pending.splice(i, 1);
+    if (i >= 0) { pending.splice(i, 1); S.sfx("tap"); }
     render();
   }
 
@@ -236,6 +237,7 @@
     const i = +t.dataset.i;
     if (cursor && !cellTile(cursor.r, cursor.c)) { placeAt(cursor.r, cursor.c, i); return; }
     selRack = selRack === i ? -1 : i;
+    S.sfx("tap");
     renderRack();
     renderControls();
   });
@@ -252,6 +254,7 @@
     blankTarget = null;
     S.closeModal("blank-modal");
     pending.push({ r, c, l: b.dataset.l, blank: true, rackIndex });
+    S.sfx("place");
     afterPlace(r, c);
   });
 
@@ -275,6 +278,7 @@
     if (i < 0) { S.showToast(`You don't have a ${ch.toUpperCase()}`); return; }
     if (cellTile(cursor.r, cursor.c)) return;
     pending.push({ r: cursor.r, c: cursor.c, l: ch, blank, rackIndex: i });
+    S.sfx("place");
     afterPlace(cursor.r, cursor.c);
   });
 
@@ -299,6 +303,7 @@
     if (G.turn !== "you" || busy || !pending.length) return;
     const ev = E.evaluate(G.board, pending, dict);
     if (!ev.ok) {
+      S.sfx("wrong");
       say("sad", ev.badWord ? `Hmm, I don't think ${ev.badWord.toUpperCase()} is a word…` : ev.error);
       return;
     }
@@ -313,6 +318,7 @@
     G.scores.you += ev.score;
     G.scoreless = 0;
     G.log.push(`You played ${ev.main.toUpperCase()} for ${ev.score}${ev.bingo ? " (all 7 tiles!)" : ""}`);
+    S.sfx(ev.bingo ? "win" : ev.score >= 30 ? "great" : "good");
     if (ev.bingo) say("celebrate", "ALL SEVEN TILES?! +40 bonus! Wow!", 3500);
     else if (ev.score >= 30) say("celebrate", pickOne([`${ev.score} points! Show-off!`, "Ooh, that's a big one!", "Holy quack!"]), 3200);
     else say("happy", pickOne(["Nice word!", `${ev.main.toUpperCase()}! Good one.`, "Not bad, not bad…", "Hmm, my turn…"]));
@@ -351,6 +357,7 @@
     $("result-text").textContent = `You ${G.scores.you} · Quackers ${G.scores.ai} (${G.level}). ${
       yv || av ? `Leftover tiles: you −${yv}, Quackers −${av}. ` : ""
     }Your record on ${G.level}: ${st.w} won, ${st.l} lost${st.t ? `, ${st.t} tied` : ""}. Best score: ${st.best}.`;
+    S.sfx(won ? "win" : "lose");
     if (won) say("sad", pickOne(["You beat me fair and square! Rematch?", "Aw, nuts. Good game!"]), 0);
     else if (tie) say("think", "A tie! Rematch?", 0);
     else say("celebrate", pickOne(["I win! Quack quack! Rematch?", "Good game! Want another?"]), 0);
@@ -368,6 +375,8 @@
       busy = false;
       if (move) {
         applyMove("ai", move.placements);
+        move.placements.forEach((_, k) => setTimeout(() => S.sfx("place"), k * 90));
+        setTimeout(() => S.sfx(move.bingo ? "quack2" : "quack"), move.placements.length * 90 + 120);
         G.scores.ai += move.score;
         G.scoreless = 0;
         G.log.push(`Quackers played ${move.main.toUpperCase()} for ${move.score}${move.bingo ? " (all 7 tiles!)" : ""}`);
@@ -406,6 +415,7 @@
   els.shuffle.addEventListener("click", () => {
     if (pending.length) recallAll();
     shuffleArr(G.racks.you);
+    S.sfx("shuffle");
     save();
     renderRack();
   });
@@ -437,6 +447,7 @@
       return { r: p.r, c: p.c, l: p.l, blank: p.blank, rackIndex: i };
     });
     G.hints--;
+    S.sfx("hint");
     save();
     render();
     say("think", `Psst… try ${m.main.toUpperCase()} for ${m.score}!`, 3800);
@@ -474,6 +485,7 @@
     G.scoreless++;
     G.lastMove = [];
     G.log.push(`You swapped ${back.length} tile${back.length === 1 ? "" : "s"}`);
+    S.sfx("shuffle");
     S.closeModal("swap-modal");
     endTurn();
   });
@@ -505,6 +517,7 @@
   );
   $("play-again-btn").addEventListener("click", () => { S.closeModal("result-modal"); openNewGame(); });
   $("help-btn").addEventListener("click", () => S.openModal("help-modal"));
+  if (mascotEl) mascotEl.addEventListener("click", () => S.sfx("quack"));
   if (mascotEl) mascotEl.addEventListener("click", () => say("happy", pickOne(["Quack!", "Don't let me win!", "I know a LOT of words.", "Psst — try the Hint button!"])));
 
   // ---------- start ----------

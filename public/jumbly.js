@@ -81,7 +81,7 @@
     }
   }
   if (mascotEl) {
-    mascotEl.addEventListener("click", () => react("happy", "hello"));
+    mascotEl.addEventListener("click", () => { react("happy", "hello"); S.sfx("quack"); });
   }
 
   // ---------- puzzle selection ----------
@@ -255,6 +255,7 @@
   function addIndex(i) {
     if (picked.includes(i) || isOver()) return;
     picked.push(i);
+    S.sfx("tap");
     renderLetters();
     renderGuess();
   }
@@ -265,6 +266,7 @@
   }
 
   function removeLast() {
+    if (picked.length) S.sfx("tap");
     picked.pop();
     renderLetters();
     renderGuess();
@@ -277,6 +279,7 @@
   }
 
   function mix() {
+    S.sfx("shuffle");
     react("happy", "mix", 1400);
     const word = currentWord();
     state.order = S.shuffle(state.order);
@@ -309,12 +312,13 @@
     const { words, bonus } = state.puzzle;
     if (state.found.includes(word) || state.bonus.includes(word)) {
       react("think", "again");
+      S.sfx("wrong");
       flashGuess("shake");
     } else if (words.includes(word)) {
       state.found.push(word);
-      if (state.found.length === words.length) react("celebrate", "done", 0);
-      else if (word.length === 6) react("celebrate", "big", 3500);
-      else react("happy", word.length >= 5 ? "great" : "happy");
+      if (state.found.length === words.length) { react("celebrate", "done", 0); S.sfx("win"); }
+      else if (word.length === 6) { react("celebrate", "big", 3500); S.sfx("great"); setTimeout(() => S.sfx("quack2"), 350); }
+      else { react("happy", word.length >= 5 ? "great" : "happy"); S.sfx(word.length >= 5 ? "great" : "good"); }
       S.showToast(word.length === 6 ? "The big one! +100 🦆" : `${word.length >= 5 ? "Great word!" : "Nice!"} +${wordPoints(word)}`);
       flashGuess("pop");
       clearGuess();
@@ -330,6 +334,7 @@
     } else if (bonus.includes(word)) {
       state.bonus.push(word);
       react("happy", "bonus");
+      S.sfx("bonus");
       S.showToast(`Bonus word: ${word.toUpperCase()} +${Math.round(wordPoints(word) / 2)}`);
       flashGuess("pop");
       clearGuess();
@@ -338,6 +343,7 @@
       return;
     } else {
       react("sad", "wrong");
+      S.sfx("wrong");
       flashGuess("shake");
     }
     clearGuess();
@@ -355,6 +361,7 @@
     }
     state.hinted[target] = (state.hinted[target] || 0) + 1;
     react("think", "hint");
+    S.sfx("hint");
     state.hints++;
     persist();
     renderBoard();
@@ -375,6 +382,7 @@
     }
     state.revealed = true;
     react("sad", "reveal", 0);
+    S.sfx("lose");
     picked = [];
     persist();
     render();

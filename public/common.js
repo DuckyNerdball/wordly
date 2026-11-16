@@ -600,6 +600,23 @@ window.Shared = (() => {
         showToast(`Text size: ${next.n}`);
       });
       themeBtn.insertAdjacentElement("afterend", sizeBtn);
+      if (document.body.classList.contains("has-sound") && !document.getElementById("sound-btn")) {
+        const soundBtn = document.createElement("button");
+        soundBtn.id = "sound-btn";
+        soundBtn.type = "button";
+        soundBtn.className = "icon-btn labeled-btn sound-btn";
+        soundBtn.title = "Sound";
+        soundBtn.setAttribute("aria-label", "Sound effects on or off");
+        soundBtn.innerHTML = '<span class="btn-icon" aria-hidden="true"></span><span class="btn-label"></span>';
+        soundBtn.addEventListener("click", () => {
+          const on = !soundOn();
+          setSound(on);
+          if (on) sfx("quack");
+          showToast(on ? "Sound effects on" : "Sound effects off");
+        });
+        sizeBtn.insertAdjacentElement("afterend", soundBtn);
+        setSound(soundOn());
+      }
     }
 
     const saveName = async () => {
@@ -791,7 +808,102 @@ window.Shared = (() => {
       </table>`;
   }
 
+  // ---------- sound effects: synthesized with Web Audio, no sound files ----------
+  const SOUND_KEY = "wordly:sound";
+  let actx = null;
+  function soundOn() {
+    try { return localStorage.getItem(SOUND_KEY) !== "off"; } catch { return true; }
+  }
+  function audio() {
+    if (!actx) {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return null;
+      actx = new AC();
+    }
+    if (actx.state === "suspended") actx.resume();
+    return actx;
+  }
+  function tone(c, t, freq, dur, opts = {}) {
+    const { type = "sine", vol = 0.16, slideTo = null, attack = 0.008 } = opts;
+    const o = c.createOscillator();
+    const g = c.createGain();
+    o.type = type;
+    o.frequency.setValueAtTime(freq, t);
+    if (slideTo) o.frequency.exponentialRampToValueAtTime(slideTo, t + dur);
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(vol, t + attack);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(g).connect(c.destination);
+    o.start(t);
+    o.stop(t + dur + 0.02);
+  }
+  function noise(c, t, dur, vol, freq, q = 1) {
+    const len = Math.floor(c.sampleRate * dur);
+    const buf = c.createBuffer(1, len, c.sampleRate);
+    const d = buf.getChannelData(0);
+    for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / len);
+    const src = c.createBufferSource();
+    src.buffer = buf;
+    const f = c.createBiquadFilter();
+    f.type = "bandpass";
+    f.frequency.value = freq;
+    f.Q.value = q;
+    const g = c.createGain();
+    g.gain.value = vol;
+    src.connect(f).connect(g).connect(c.destination);
+    src.start(t);
+  }
+  function quackAt(c, t, pitch = 1) {
+    // a cartoon quack: buzzy sawtooth, pitch drops, shaped by two "beak" formants
+    const o = c.createOscillator();
+    o.type = "sawtooth";
+    o.frequency.setValueAtTime(520 * pitch, t);
+    o.frequency.exponentialRampToValueAtTime(300 * pitch, t + 0.16);
+    const f1 = c.createBiquadFilter(); f1.type = "bandpass"; f1.frequency.value = 1100; f1.Q.value = 3;
+    const f2 = c.createBiquadFilter(); f2.type = "bandpass"; f2.frequency.value = 2400; f2.Q.value = 4;
+    const g = c.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(0.5, t + 0.015);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.18);
+    o.connect(f1).connect(g);
+    o.connect(f2).connect(g);
+    g.connect(c.destination);
+    o.start(t);
+    o.stop(t + 0.2);
+  }
+  const SFX = {
+    tap: (c, t) => tone(c, t, 660, 0.06, { type: "triangle", vol: 0.08 }),
+    place: (c, t) => { noise(c, t, 0.05, 0.5, 1800, 2); tone(c, t, 180, 0.07, { type: "triangle", vol: 0.12 }); },
+    good: (c, t) => { tone(c, t, 660, 0.12, { vol: 0.14 }); tone(c, t + 0.09, 880, 0.18, { vol: 0.14 }); },
+    great: (c, t) => [660, 830, 990, 1320].forEach((f, i) => tone(c, t + i * 0.07, f, 0.18, { vol: 0.13 })),
+    bonus: (c, t) => [1320, 1760, 2090].forEach((f, i) => tone(c, t + i * 0.05, f, 0.12, { type: "triangle", vol: 0.09 })),
+    wrong: (c, t) => { tone(c, t, 220, 0.14, { type: "square", vol: 0.06, slideTo: 160 }); tone(c, t + 0.12, 160, 0.2, { type: "square", vol: 0.06, slideTo: 120 }); },
+    shuffle: (c, t) => { for (let i = 0; i < 4; i++) noise(c, t + i * 0.045, 0.05, 0.35, 2500 + i * 400, 3); },
+    hint: (c, t) => { tone(c, t, 990, 0.1, { type: "triangle", vol: 0.1 }); tone(c, t + 0.1, 1320, 0.16, { type: "triangle", vol: 0.1 }); },
+    win: (c, t) => { [523, 659, 784, 1047].forEach((f, i) => tone(c, t + i * 0.12, f, 0.22, { type: "triangle", vol: 0.16 })); tone(c, t + 0.5, 1047, 0.5, { vol: 0.12 }); quackAt(c, t + 0.75, 1.1); quackAt(c, t + 0.98, 1.2); },
+    lose: (c, t) => [392, 349, 311, 262].forEach((f, i) => tone(c, t + i * 0.16, f, 0.24, { type: "triangle", vol: 0.12 })),
+    quack: (c, t) => quackAt(c, t, 0.95 + Math.random() * 0.15),
+    quack2: (c, t) => { quackAt(c, t, 1); quackAt(c, t + 0.2, 1.12); },
+  };
+  function sfx(name) {
+    if (!soundOn() || !SFX[name]) return;
+    const c = audio();
+    if (!c) return;
+    try { SFX[name](c, c.currentTime + 0.01); } catch { /* ignore audio errors */ }
+  }
+  function setSound(on) {
+    try { localStorage.setItem(SOUND_KEY, on ? "on" : "off"); } catch { /* ignore */ }
+    document.querySelectorAll(".sound-btn").forEach((b) => {
+      b.querySelector(".btn-icon").innerHTML = on ? "&#128266;" : "&#128263;";
+      b.querySelector(".btn-label").textContent = on ? "Sound on" : "Sound off";
+      b.setAttribute("aria-pressed", on ? "true" : "false");
+    });
+  }
+
+
   return {
+    sfx,
+    soundOn,
     THEMES,
     load,
     save,
